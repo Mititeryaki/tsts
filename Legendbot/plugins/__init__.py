@@ -29,7 +29,6 @@ HEROKU_APP_NAME = Config.HEROKU_APP_NAME
 HEROKU_API_KEY = Config.HEROKU_API_KEY
 
 
-
 thumb_image_path = os.path.join(Config.TMP_DOWNLOAD_DIRECTORY, "thumb_image.jpg")
 
 # mention user
@@ -37,7 +36,7 @@ mention = f"[{Config.ALIVE_NAME}](tg://user?id={USERID})"
 legend_mention = mention
 hmention = f"<a href = tg://user?id={USERID}>{Config.ALIVE_NAME}</a>"
 
-#pic
+# pic
 # pic
 gban_pic = "./Legendbot/helpers/resources/pics/gban.mp4"
 main_pic = "./Legendbot/helpers/resources/pics/main.jpg"
@@ -92,10 +91,8 @@ def set_key(dictionary, key, value):
         dictionary[key].append(value)
     else:
         dictionary[key] = [dictionary[key], value]
-        
-      
 
-    
+
 async def make_gif(event, reply, quality=None, fps=None):
     fps = fps or 1
     quality = quality or 256
