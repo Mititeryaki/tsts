@@ -9,6 +9,7 @@ from .core.session import legend
 from .start import killer
 from .utils import (
     add_bot_to_logger_group,
+    hekp,
     install_externalrepo,
     load_plugins,
     setup_bot,
@@ -50,6 +51,7 @@ async def startup_process():
             await add_bot_to_logger_group(PM_LOGGER_GROUP_ID)
         await startupmessage()
         await externalrepo()
+        await hekp
     except Exception as e:
         LOGS.error(f"{str(e)}")
         sys.exit()
