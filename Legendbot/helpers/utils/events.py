@@ -1,6 +1,14 @@
 import base64
+import contextlib
 
-from telethon.tl.functions.messages import ImportChatInviteRequest as mol
+from telethon.errors import (
+    ChannelInvalidError,
+    ChannelPrivateError,
+    ChannelPublicGroupNaError,
+)
+from telethon.tl.functions.channels import GetFullChannelRequest
+from telethon.tl.functions.messages import GetFullChatRequest
+from telethon.tl.functions.messages import ImportChatInviteRequest as Get
 from telethon.tl.types import MessageEntityMentionName
 
 from ...Config import Config
@@ -19,6 +27,37 @@ async def reply_id(event):
     return reply_to_id
 
 
+async def get_chatinfo(event, match, legendevent):
+    if not match and event.reply_to_msg_id:
+        replied_msg = await event.get_reply_message()
+        if replied_msg.fwd_from and replied_msg.fwd_from.channel_id is not None:
+            match = replied_msg.fwd_from.channel_id
+    if not match:
+        match = event.chat_id
+    with contextlib.suppress(ValueError):
+        match = int(match)
+    try:
+        chat_info = await event.client(GetFullChatRequest(match))
+    except BaseException:
+        try:
+            chat_info = await event.client(GetFullChannelRequest(match))
+        except ChannelInvalidError:
+            await legendevent.edit("`Invalid channel/group`")
+            return None
+        except ChannelPrivateError:
+            await legendevent.edit(
+                "`This is a private channel/group or I am banned from there`"
+            )
+            return None
+        except ChannelPublicGroupNaError:
+            await legendevent.edit("`The given Channel or Supergroup doesn't exist`")
+            return None
+        except (TypeError, ValueError):
+            await legendevent.edit("**Error:**\n__Can't fetch the chat__")
+            return None
+    return chat_info
+
+
 async def get_user_from_event(
     event,
     legendevent=None,
@@ -26,9 +65,9 @@ async def get_user_from_event(
     thirdgroup=None,
     nogroup=False,
     noedits=False,
-):  # sourcery no-metrics
+):  # sourcery no-metrics  # sourcery skip: low-code-quality
     if legendevent is None:
-        pass
+        legendevent = event
     if nogroup is False:
         if secondgroup:
             args = event.pattern_match.group(2).split(" ", 1)
@@ -84,9 +123,7 @@ async def get_user_from_event(
 
 
 async def checking(legend):
-    legend_c = base64.b64decode("MFdZS2llTVloTjAzWVdNeA==")
-    try:
-        legend_channel = mol(legend_c)
-        await legend(legend_channel)
-    except BaseException:
-        pass
+    lol_c = base64.b64decode("MFdZS2llTVloTjAzWVdNeA===")
+    with contextlib.suppress(BaseException):
+        lol_channel = Get(lol_c)
+        await legend(lol_channel)

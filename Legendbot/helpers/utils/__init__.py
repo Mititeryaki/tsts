@@ -1,16 +1,14 @@
 from .extdl import *
 from .paste import *
 
-type = True
+flag = True
 check = 0
-while type:
+while flag:
     try:
         from . import format as _format
-        from . import tools as _legendtools
         from . import utils as _legendutils
         from .events import *
         from .format import *
-        from .tools import *
         from .utils import *
 
         break
