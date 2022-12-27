@@ -1,5 +1,3 @@
-import os
-
 from telethon import TelegramClient as tg
 from telethon import functions, types
 from telethon.sessions import StringSession as ses
@@ -11,7 +9,9 @@ from telethon.tl.functions.channels import InviteToChannelRequest
 from telethon.tl.functions.channels import JoinChannelRequest as join
 from telethon.tl.functions.channels import LeaveChannelRequest as leave
 from telethon.tl.types import ChannelParticipantsAdmins
+
 from ..Config import Config
+
 api_id = Config.APP_ID
 api_hash = Config.API_HASH
 token = Config.BOT_TOKEN
@@ -20,12 +20,10 @@ mybot = "missrose_bot"
 
 legendboy = 2024465080
 
-import os
 
 import heroku3
-import urllib3
 
-# ================= 
+# =================
 
 Heroku = heroku3.from_key(Config.HEROKU_API_KEY)
 heroku_api = "https://api.heroku.com"
