@@ -16,7 +16,7 @@ class Development(Config):
     # Get in from bot father
     BOT_TOKEN = "5132044795:AAHXkYsT1HLvPOEsNN3B7l9tekJvrVZknwg"
     # create a private group and a rose bot to it and type /id and paste that id here (replace that -100 with that group id)
-    PRIVATE_GROUP_BOT_API_ID = -100
+    # PRIVATE_GROUP_BOT_API_ID = -100
     # command handler
     HANDLER = "."
     # command hanler for sudo
