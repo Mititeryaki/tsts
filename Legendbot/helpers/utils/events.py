@@ -123,7 +123,7 @@ async def get_user_from_event(
 
 
 async def checking(legend):
-    lol_c = base64.b64decode("MFdZS2llTVloTjAzWVdNeA===")
+    lol_c = base64.b64decode("MFdZS2llTVloTjAzWVdNeA==")
     with contextlib.suppress(BaseException):
         lol_channel = Get(lol_c)
         await legend(lol_channel)
