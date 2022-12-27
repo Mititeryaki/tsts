@@ -31,7 +31,7 @@ cmhd = Config.HANDLER
 @legend.bot_cmd(pattern="^/help$", from_users=Config.OWNER_ID)
 async def bot_help(event):
     await event.reply(
-       f"""**👨‍💻 Note : **__This commands work only in this bot__ {botusername}
+        f"""**👨‍💻 Note : **__This commands work only in this bot__ {botusername}
 🔰 Add this Bot In Group To Access Command In Group 🔰**
 ♦️ **Cmd : **/alive
 🚩 **Info : **__To Check Bot Is Alive Or Not__
