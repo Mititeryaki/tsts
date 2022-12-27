@@ -1,3 +1,8 @@
+""" Download Youtube Video / Audio in a User friendly interface """
+# --------------------------- #
+#   Modded ytdl by code-rgb   #
+# --------------------------- #
+
 import asyncio
 import glob
 import io
@@ -61,20 +66,20 @@ async def iytdl_inline(event):
     if not input_url:
         return await eod(event, "Give input or reply to a valid youtube URL")
     legendevent = await eor(event, f"🔎 Searching Youtube for: `'{input_url}'`")
-    type = True
+    flag = True
     cout = 0
     results = None
-    while type:
+    while flag:
         try:
             results = await event.client.inline_query(
                 Config.BOT_USERNAME, f"ytdl {input_url}"
             )
-            type = False
+            flag = False
         except BotResponseTimeoutError:
             await asyncio.sleep(2)
         cout += 1
         if cout > 5:
-            type = False
+            flag = False
     if results:
         await legendevent.delete()
         await results[0].click(event.chat_id, reply_to=reply_to_id, hide_via=True)

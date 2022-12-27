@@ -1,4 +1,3 @@
-import io
 import re
 from collections import defaultdict
 from datetime import datetime
@@ -25,7 +24,6 @@ from ..sql_helper.bot_pms_sql import (
 )
 from ..sql_helper.bot_starters import add_starter_to_db, get_starter_details
 from ..sql_helper.globals import delgvar, gvarstatus
-from ..sql_helper.idaddar import get_all_users
 from . import BOTLOG, BOTLOG_CHATID
 from .botmanagers import ban_user_from_bot
 
@@ -71,7 +69,7 @@ async def check_bot_started_users(user, event):
     incoming=True,
     func=lambda e: e.is_private,
 )
-async def bot_start(event):
+async def bot_start(event):  # sourcery skip: low-code-quality
     chat = await event.get_chat()
     user = await legend.get_me()
     if check_is_black_list(chat.id):
@@ -92,13 +90,6 @@ async def bot_start(event):
     if chat.id != Config.OWNER_ID:
         customstrmsg = gvarstatus("START_TEXT") or None
         if customstrmsg is not None:
-            buttons = [
-                (
-                    Button.inline("🔰 Rules 🔰", data="rules"),
-                    Button.inline("❤ Deploy ❤", data="depy"),
-                ),
-                (Button.url("🔱 Support 🔱", "https://t.me/LegendBot_OP"),),
-            ]
             start_msg = customstrmsg.format(
                 mention=mention,
                 first=first,
@@ -113,27 +104,23 @@ async def bot_start(event):
                 my_mention=my_mention,
             )
         else:
-            start_msg = f"Hey! 👤{mention},\nI am {my_mention}'s assistant bot.\nYou can contact to my master from here.\n\nPowered by [LegendBot](https://t.me/LegendBot_OP)"
-            buttons = [
-                (
-                    Button.inline("🔰 Rules 🔰", data="rules"),
-                    Button.inline("❤ Deploy ❤", data="depy"),
-                ),
-                (Button.url("🔱 Support 🔱", "https://t.me/LegendBot_OP"),),
-            ]
-    else:
-        start_msg = f"Hey {mention} I am your {my_mention}'s assistant bot.\nI Am Here To Help U \n\nPowered By [LegendBot](https://t.me/LegendBot_OP)"
+            start_msg = f"Hey! 👤{mention},\
+                        \nI am {my_mention}'s assistant bot.\
+                        \nYou can contact to my master from here.\
+                        \n\nPowered by [Legenduserbot](https://t.me/LegendBot_XDS)"
         buttons = [
             (
-                Button.url(" Support ", "https://t.me/LegendBot_OP"),
-                Button.url(" Updates ", "https://t.me/LegendBot_AI"),
-            ),
-            (
-                Button.inline(" Users ", data="users"),
-                Button.inline(" Settings ", data="osg"),
-            ),
-            (Button.inline(" Hack ", data="hack"),),
+                Button.url("Repo", "https://github.com/LEGEND-AI/LEGENDUSERBOT"),
+                Button.url(
+                    "Deploy",
+                    "https://github.com/LEGEND-AI/LEGENDBOT",
+                ),
+            )
         ]
+    else:
+        start_msg = "Hey Master!\
+            \nHow can i help you ?"
+        buttons = None
     try:
         if custompic:
             await event.client.send_file(
@@ -156,74 +143,16 @@ async def bot_start(event):
         if BOTLOG:
             await event.client.send_message(
                 BOTLOG_CHATID,
-                f"**Error**\nThere was a error while user starting your bot. `{e}`",
+                f"**Error**\nThere was a error while user starting your bot.\\\x1f                \n`{e}`",
             )
+
     else:
         await check_bot_started_users(chat, event)
 
 
-@legend.tgbot.on(events.callbackquery.CallbackQuery(data=re.compile(b"rules")))
-async def help(event):
-    if event.query.user_id == bot.uid:
-        await event.answer("This Is Not For U My Master", cache_time=0, alert=True)
-    else:
-        await event.client.send_message(
-            event.chat_id,
-            message="🔰Rᴇᴀᴅ Tʜᴇ Rᴜʟᴇꜱ Tᴏᴏ🔰\n\n🔹 Dᴏɴ'ᴛ Sᴩᴀᴍ\n🔹 ᴛᴀʟᴋ Fʀɪᴇɴᴅʟy\n🔹 Dᴏɴ'ᴛ Bᴇ Rᴜᴅᴇ\n🔹 Sᴇɴᴅ Uʀ Mᴇꜱꜱᴀɢᴇꜱ Hᴇʀᴇ\n🔹 Nᴏ Pᴏʀɴᴏɢʀᴀᴘʜʏ\n🔹 Dᴏɴ'ᴛ Wʀɪᴛᴇ Bᴀᴅ Wᴏʀᴅs.\n\nWʜᴇɴ I Gᴇᴛ Fʀᴇᴇ Tɪᴍᴇ , I'ʟʟ Rᴇᴩʟy U 💯✅",
-            buttons=[
-                (Button.inline("Close", data="close"),),
-            ],
-        )
-
-
-@legend.tgbot.on(events.callbackquery.CallbackQuery(data=re.compile(b"users")))
-async def users(event):
-    if event.query.user_id == bot.uid:
-        total_users = get_all_users()
-        users_list = "⚜List Of Total Users In Bot.⚜ \n\n"
-        for starked in total_users:
-            users_list += ("==> {} \n").format(int(starked.chat_id))
-        with io.BytesIO(str.encode(users_list)) as tedt_file:
-            tedt_file.name = "userlist.txt"
-            await event.client.send_file(
-                event.chat_id,
-                tedt_file,
-                force_document=True,
-                caption="Total Users In Your Bot.",
-                allow_cache=False,
-            )
-    else:
-        await event.answer(
-            "Wait ... Sorry U are Not My Owmer So, U Cant Acesss It",
-            cache_time=0,
-            alert=True,
-        )
-
-
-@legend.tgbot.on(events.callbackquery.CallbackQuery(data=re.compile(b"depy")))
-async def help(event):
-    if event.query.user_id == bot.uid:
-        await event.answer("This Is Not For U My Master", cache_time=0, alert=True)
-    else:
-        await event.client.send_message(
-            event.chat_id,
-            message="You Can Deploy/Install LegendBot In Heroku By Following Steps Bellow, You Can See Some Quick Guides On Support Channel Or On Your Own Assistant Bot. \nThank You For Contacting Me.",
-            link_preview=False,
-            buttons=[
-                [
-                    Button.url("Tutorial", "https://youtu.be/9CtOErUFmrQ"),
-                ],
-                [
-                    Button.url(
-                        "Github Repo ❓", "https://github.com/LEGEND-AI/LEGENDBOT"
-                    ),
-                ],
-            ],
-        )
-
-
 @legend.bot_cmd(incoming=True, func=lambda e: e.is_private)
 async def bot_pms(event):  # sourcery no-metrics
+    # sourcery skip: low-code-quality
     chat = await event.get_chat()
     if check_is_black_list(chat.id):
         return
@@ -288,11 +217,6 @@ async def bot_pms_edit(event):  # sourcery no-metrics
         users = get_user_reply(event.id)
         if users is None:
             return
-        reply_msg = None
-        for user in users:
-            if user.chat_id == str(chat.id):
-                reply_msg = user.message_id
-                break
         if reply_msg := next(
             (user.message_id for user in users if user.chat_id == str(chat.id)),
             None,
@@ -361,6 +285,7 @@ async def handler(event):
                 ),
                 None,
             )
+
             try:
                 if reply_msg:
                     users = get_user_id(reply_msg)
@@ -408,13 +333,13 @@ async def bot_start(event):
     await info_msg.edit(uinfo)
 
 
-async def send_flood_alert(user_) -> None:
+async def send_flood_alert(user_) -> None:  # sourcery skip: low-code-quality
     # sourcery no-metrics
     buttons = [
         (
             Button.inline("🚫  BAN", data=f"bot_pm_ban_{user_.id}"),
             Button.inline(
-                "Bot Antiflood [OFF]",
+                "➖ Bot Antiflood [OFF]",
                 data="toggle_bot-antiflood_off",
             ),
         )

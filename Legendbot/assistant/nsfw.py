@@ -1,3 +1,4 @@
+import contextlib
 import re
 
 from telethon import Button
@@ -8,7 +9,6 @@ from Legendbot import legend
 
 from ..Config import Config
 from ..core.logger import logging
-from ..sql_helper.globals import addgvar, delgvar
 
 LOGS = logging.getLogger(__name__)
 
@@ -28,15 +28,12 @@ async def age_verification_true(event: CallbackQuery):
             data="chg_of_decision_",
         )
     ]
-    try:
-        addgvar("ALLOW_NSFW", "true")
+    with contextlib.suppress(MessageNotModifiedError):
         await event.edit(
-            text="Done Now U Can Use NSFW Plugin \n\nTo Disable Use .deldb ALLOW_NSFW",
-            file="https://telegra.ph/file/85f3071c31279bcc280ef.jpg",
+            text="To access this plugin type `.setdb ALLOW_NSFW True`",
+            file="https://graph.org/file/85f3071c31279bcc280ef.jpg",
             buttons=buttons,
         )
-    except MessageNotModifiedError:
-        pass
 
 
 @legend.tgbot.on(CallbackQuery(data=re.compile(r"^age_verification_false")))
@@ -54,15 +51,12 @@ async def age_verification_false(event: CallbackQuery):
             data="chg_of_decision_",
         )
     ]
-    try:
-        delgvar("ALLOW_NSFW")
+    with contextlib.suppress(MessageNotModifiedError):
         await event.edit(
             text="GO AWAY KID !",
-            file="https://telegra.ph/file/1140f16a883d35224e6a1.jpg",
+            file="https://graph.org/file/1140f16a883d35224e6a1.jpg",
             buttons=buttons,
         )
-    except MessageNotModifiedError:
-        pass
 
 
 @legend.tgbot.on(CallbackQuery(data=re.compile(r"^chg_of_decision_")))
@@ -80,11 +74,9 @@ async def chg_of_decision_(event: CallbackQuery):
             Button.inline(text="No I'm Not", data="age_verification_false"),
         )
     ]
-    try:
+    with contextlib.suppress(MessageNotModifiedError):
         await event.edit(
             text="**ARE YOU OLD ENOUGH FOR THIS ?**",
-            file="https://telegra.ph/file/238f2c55930640e0e8c56.jpg",
+            file="https://graph.org/file/238f2c55930640e0e8c56.jpg",
             buttons=buttons,
         )
-    except MessageNotModifiedError:
-        pass

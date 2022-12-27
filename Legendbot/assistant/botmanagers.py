@@ -43,6 +43,7 @@ async def get_user_and_reason(event):
     return user_id, reason
 
 
+# taken from https://github.com/code-rgb/USERGE-X/blob/f95766027ef95854d05e523b42cd158c2e8cdbd0/userge/plugins/bot/bot_forwards.py#L420
 def progress_str(total: int, current: int) -> str:
     percentage = current * 100 / total
     prog_arg = "**Progress** : `{}%`\n" "```[{}{}]```"

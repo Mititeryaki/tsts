@@ -1,9 +1,4 @@
-from Legendbot import BOTLOG, BOTLOG_CHATID
-from Legendbot.core.session import legend, tgbot
+from Legendbot import BOTLOG, BOTLOG_CHATID, legend
 
 from ..Config import Config
 from ..core.inlinebot import *
-
-LEGEND_USER = legend.me.first_name
-The_LegendBoy = legend.uid
-legend_mention = f"[{LEGEND_USER}](tg://user?id={The_LegendBoy})"
