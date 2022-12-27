@@ -26,9 +26,8 @@ from ..core.logger import logging
 from ..core.managers import eod, eor
 from ..helpers import media_type
 from ..helpers.utils import _format, get_user_from_event
-from ..sql_helper.globals import gvarstatus
 from ..sql_helper.mute_sql import is_muted, mute, unmute
-from . import BOTLOG, BOTLOG_CHATID, ban_pic, demote_pic, mute_pic, promote_pic
+from . import BOTLOG, BOTLOG_CHATID
 
 # =================== STRINGS ============
 PP_TOO_SMOL = "`The image is too small`"
@@ -61,102 +60,12 @@ UNBAN_RIGHTS = ChatBannedRights(
     embed_links=None,
 )
 
-ADMIN_PIC = gvarstatus("ADMIN_PIC")
-if ADMIN_PIC:
-    prmt_pic = ADMIN_PIC
-else:
-    prmt_pic = promote_pic
-
-if ADMIN_PIC:
-    bn_pic = ADMIN_PIC
-else:
-    bn_pic = ban_pic
-
-if ADMIN_PIC:
-    dmt_pic = ADMIN_PIC
-else:
-    dmt_pic = demote_pic
-
-if ADMIN_PIC:
-    mt_pic = ADMIN_PIC
-else:
-    mt_pic = mute_pic
-
-
 LOGS = logging.getLogger(__name__)
 MUTE_RIGHTS = ChatBannedRights(until_date=None, send_messages=True)
 UNMUTE_RIGHTS = ChatBannedRights(until_date=None, send_messages=False)
 
 menu_category = "admin"
 # ================================================
-from telethon.tl.types import ChannelParticipantsAdmins as admin
-from telethon.tl.types import ChannelParticipantsKicked as banned
-
-
-@legend.legend_cmd(
-    pattern="demoteall$",
-    command=("demoteall", menu_category),
-    info={
-        "header": "To Demote all members whom u have promoted ",
-        "description": "It Help U to demote all those member whom u have promoted in this chat",
-        "usage": [
-            "{tr}demall",
-        ],
-    },
-    groups_only=True,
-    require_admin=True,
-)
-async def shj(e):
-    "To Demote all members whom u have promoted"
-    sr = await e.client.get_participants(e.chat.id, filter=admin)
-    et = 0
-    newrights = ChatAdminRights(
-        add_admins=None,
-        invite_users=None,
-        change_info=None,
-        ban_users=None,
-        delete_messages=None,
-        pin_messages=None,
-    )
-    rank = "????"
-    for i in sr:
-        try:
-            await e.client(EditAdminRequest(e.chat_id, i.id, newrights, rank))
-            et += 1
-        except BadRequestError:
-            return await eod(e, NO_PERM)
-    await eor(e, f"Demoted {et} admins !")
-
-
-@legend.legend_cmd(
-    pattern="getbanned$",
-    command=("getbanned", menu_category),
-    info={
-        "header": "To Get List Of Banned User in group",
-        "description": "It Help U to get list of all user banned in group /nNote: u must be have proper right",
-        "usage": [
-            "{tr}getbanned",
-        ],
-    },
-    groups_only=True,
-    require_admin=True,
-)
-async def getbaed(event):
-    "To Get List Of Banned User in group"
-    try:
-        users = await event.client.get_participants(event.chat_id, filter=banned)
-    except Exception as e:
-        return await eor(event, f"ERROR - {str(e)}")
-    if len(users) > 0:
-        msg = f"✓ **List of banned member in this group** !!\n✓ Total : __{len(users)}__\n\n"
-        for user in users:
-            if not user.deleted:
-                msg += f"🛡 __[{user.first_name}]({user.id})__\n"
-            else:
-                msg += "☠️ __ Deleted Account__\n"
-        await eor(event, msg)
-    else:
-        await eod(event, "No Banned Users !!")
 
 
 @legend.legend_cmd(
@@ -179,8 +88,8 @@ async def getbaed(event):
 )
 async def set_group_photo(event):  # sourcery no-metrics
     "For changing Group dp"
-    type = (event.pattern_match.group(1)).strip()
-    if type == "-s":
+    flag = (event.pattern_match.group(1)).strip()
+    if flag == "-s":
         replymsg = await event.get_reply_message()
         photo = None
         if replymsg and replymsg.media:
@@ -197,11 +106,7 @@ async def set_group_photo(event):  # sourcery no-metrics
                         event.chat_id, await event.client.upload_file(photo)
                     )
                 )
-                await bot.send_file(
-                    event.chat_id,
-                    help_pic,
-                    caption=f"⚜ `Group Profile Pic Changed` ⚜\n🔰Chat ~ {gpic.chat.title}",
-                )
+                await eod(event, CHAT_PP_CHANGED)
             except PhotoCropSizeSmallError:
                 return await eod(event, PP_TOO_SMOL)
             except ImageProcessFailedError:
@@ -242,12 +147,6 @@ async def set_group_photo(event):  # sourcery no-metrics
 )
 async def promote(event):
     "To promote a person in chat"
-    chat = await event.get_chat()
-    admin = chat.admin_rights
-    creator = chat.creator
-    if not admin and not creator:
-        await eor(event, NO_ADMIN)
-        return
     new_rights = ChatAdminRights(
         add_admins=False,
         invite_users=True,
@@ -258,7 +157,7 @@ async def promote(event):
     )
     user, rank = await get_user_from_event(event)
     if not rank:
-        rank = "ℓєgєи∂"
+        rank = "Admin"
     if not user:
         return
     legendevent = await eor(event, "`Promoting...`")
@@ -266,12 +165,7 @@ async def promote(event):
         await event.client(EditAdminRequest(event.chat_id, user.id, new_rights, rank))
     except BadRequestError:
         return await legendevent.edit(NO_PERM)
-    await event.client.send_file(
-        event.chat_id,
-        prmt_pic,
-        caption=f"**⚜Promoted ~** [{user.first_name}](tg://user?id={user.id})⚜\n**Successfully In** ~ `{event.chat.title}`!! \n**Admin Tag ~**  `{rank}`",
-    )
-    await event.delete()
+    await legendevent.edit("`Promoted Successfully! Now gib Party`")
     if BOTLOG:
         await event.client.send_message(
             BOTLOG_CHATID,
@@ -298,12 +192,6 @@ async def promote(event):
 )
 async def demote(event):
     "To demote a person in group"
-    chat = await event.get_chat()
-    admin = chat.admin_rights
-    creator = chat.creator
-    if not admin and not creator:
-        await eor(event, NO_ADMIN)
-        return
     user, _ = await get_user_from_event(event)
     if not user:
         return
@@ -316,17 +204,19 @@ async def demote(event):
         delete_messages=None,
         pin_messages=None,
     )
-    rank = "????"
+    rank = "admin"
     try:
         await event.client(EditAdminRequest(event.chat_id, user.id, newrights, rank))
     except BadRequestError:
         return await legendevent.edit(NO_PERM)
-    await legendevent.delete()
-    await event.client.send_file(
-        event.chat_id,
-        dmt_pic,
-        caption=f"Demoted Successfully\nUser:[{user.first_name}](tg://{user.id})\n Chat: {event.chat.title}",
-    )
+    await legendevent.edit("`Demoted Successfully! Betterluck next time`")
+    if BOTLOG:
+        await event.client.send_message(
+            BOTLOG_CHATID,
+            f"#DEMOTE\
+            \nUSER: [{user.first_name}](tg://user?id={user.id})\
+            \nCHAT: {get_display_name(await event.get_chat())}(`{event.chat_id}`)",
+        )
 
 
 @legend.legend_cmd(
@@ -357,18 +247,13 @@ async def _ban_person(event):
     except BadRequestError:
         return await legendevent.edit(NO_PERM)
     reply = await event.get_reply_message()
-    await legendevent.delete()
     if reason:
-        await event.client.send_file(
-            event.chat_id,
-            bn_pic,
-            caption=f"{_format.mentionuser(user.first_name ,user.id)}` is banned !!`\n**Reason : **`{reason}`",
+        await legendevent.edit(
+            f"{_format.mentionuser(user.first_name ,user.id)}` is banned !!`\n**Reason : **`{reason}`"
         )
     else:
-        await event.client.send_file(
-            event.chat_id,
-            bn_pic,
-            caption=f"{_format.mentionuser(user.first_name ,user.id)} `is banned !!`",
+        await legendevent.edit(
+            f"{_format.mentionuser(user.first_name ,user.id)} `is banned !!`"
         )
     if BOTLOG:
         if reason:
@@ -456,9 +341,11 @@ async def watcher(event):
             "{tr}mute <userid/username/reply>",
             "{tr}mute <userid/username/reply> <reason>",
         ],
-    },  # sourcery no-metrics
+    },
 )
-async def startmute(event):
+async def startmute(
+    event,
+):  # sourcery no-metri  # sourcery skip: low-code-quality, low-code-qualitycs
     "To mute a person in that paticular chat"
     if event.is_private:
         replied_user = await event.client.get_entity(event.chat_id)
@@ -507,7 +394,7 @@ async def startmute(event):
         except AttributeError:
             pass
         except Exception as e:
-            return await eor(event, f"**Error : **`{e}`", 10)
+            return await eor(event, f"**Error : **`{e}`")
         try:
             await event.client(EditBannedRequest(event.chat_id, user.id, MUTE_RIGHTS))
         except UserAdminInvalidError:
@@ -523,20 +410,18 @@ async def startmute(event):
                 )
             mute(user.id, event.chat_id)
         except Exception as e:
-            return await eor(event, f"**Error : **`{e}`", 10)
-    await event.delete()
-    if reason:
-        await event.client.send_file(
-            event.chat_id,
-            mt_pic,
-            caption=f"{_format.mentionuser(user.first_name ,user.id)} `is muted in {get_display_name(await event.get_chat())}`\n`Reason:`{reason}",
-        )
-    else:
-        await event.client.send_file(
-            event.chat_id,
-            mt_pic,
-            caption=f"{_format.mentionuser(user.first_name ,user.id)} `is muted in {get_display_name(await event.get_chat())}`\n",
-        )
+            return await eor(event, f"**Error : **`{e}`")
+        if reason:
+            await eor(
+                event,
+                f"{_format.mentionuser(user.first_name ,user.id)} `is muted in {get_display_name(await event.get_chat())}`\n"
+                f"`Reason:`{reason}",
+            )
+        else:
+            await eor(
+                event,
+                f"{_format.mentionuser(user.first_name ,user.id)} `is muted in {get_display_name(await event.get_chat())}`\n",
+            )
         if BOTLOG:
             await event.client.send_message(
                 BOTLOG_CHATID,
@@ -640,16 +525,12 @@ async def kick(event):
     except Exception as e:
         return await legendevent.edit(f"{NO_PERM}\n{e}")
     if reason:
-        await event.client.send_file(
-            event.chat_id,
-            help_pic,
-            caption=f"Kicked` [{user.first_name}](tg://user?id={user.id})`!`\nReason: {reason}",
+        await legendevent.edit(
+            f"`Kicked` [{user.first_name}](tg://user?id={user.id})`!`\nReason: {reason}"
         )
     else:
-        await event.client.send_file(
-            event.chat_id,
-            bn_pic,
-            caption=f"`Kicked` [{user.first_name}](tg://user?id={user.id})`!`",
+        await legendevent.edit(
+            f"`Kicked` [{user.first_name}](tg://user?id={user.id})`!`"
         )
     if BOTLOG:
         await event.client.send_message(
@@ -667,7 +548,7 @@ async def kick(event):
         "header": "For pining messages in chat",
         "description": "reply to a message to pin it in that in chat\
         \nNote : You need proper rights for this if you want to use in group.",
-        "options": {"loud": "To notify everyone without this it will pin silently"},
+        "options": {"loud": "To notify everyone without this.it will pin silently"},
         "usage": [
             "{tr}pin <reply>",
             "{tr}pin loud <reply>",
@@ -688,6 +569,7 @@ async def pin(event):
     except Exception as e:
         return await eod(event, f"`{e}`", 5)
     await eod(event, "`Pinned Successfully!`", 3)
+    sudo_users = _sudousers_list()
     if event.sender_id in sudo_users:
         with contextlib.suppress(BadRequestError):
             await event.delete()
@@ -759,7 +641,7 @@ async def unpin(event):
         "header": "To get recent deleted messages in group",
         "description": "To check recent deleted messages in group, by default will show 5. you can get 1 to 15 messages.",
         "flags": {
-            "u": "use this type to upload media to chat else will just show as media."
+            "u": "use this flag to upload media to chat else will just show as media."
         },
         "usage": [
             "{tr}undlt <count>",
@@ -776,7 +658,7 @@ async def unpin(event):
 async def _iundlt(event):  # sourcery no-metrics
     "To check recent deleted messages in group"
     legendevent = await eor(event, "`Searching recent actions .....`")
-    type = event.pattern_match.group(1)
+    flag = event.pattern_match.group(1)
     if event.pattern_match.group(2) != "":
         lim = int(event.pattern_match.group(2))
         lim = min(lim, 15)
@@ -787,27 +669,27 @@ async def _iundlt(event):  # sourcery no-metrics
     adminlog = await event.client.get_admin_log(
         event.chat_id, limit=lim, edit=False, delete=True
     )
-    deleted_msg = f"⚜ **Recent {lim} Deleted message(s) in this group are:~** ⚜"
-    if not type:
+    deleted_msg = f"**Recent {lim} Deleted message(s) in this group are :**"
+    if not flag:
         for msg in adminlog:
-            sweet = await event.client.get_entity(msg.old.from_id)
-            _media_type = media_type(msg.old)
+            ruser = await event.client.get_entity(msg.old.from_id)
+            _media_type = await media_type(msg.old)
             if _media_type is None:
-                deleted_msg += f"\n\n✓ {_format.mentionuser(sweet.first_name ,sweet.id)} : __{msg.old.message}__"
+                deleted_msg += f"\n☞ __{msg.old.message}__ **Sent by** {_format.mentionuser(ruser.first_name ,ruser.id)}"
             else:
-                deleted_msg += f"\n\n✓ {_format.mentionuser(sweet.first_name ,sweet.id)} :  __{_media_type}__"
-            await eor(legendevent, deleted_msg)
+                deleted_msg += f"\n☞ __{_media_type}__ **Sent by** {_format.mentionuser(ruser.first_name ,ruser.id)}"
+        await eor(legendevent, deleted_msg)
     else:
         main_msg = await eor(legendevent, deleted_msg)
         for msg in adminlog:
-            sweet = await event.client.get_entity(msg.old.from_id)
-            _media_type = media_type(msg.old)
+            ruser = await event.client.get_entity(msg.old.from_id)
+            _media_type = await media_type(msg.old)
             if _media_type is None:
                 await main_msg.reply(
-                    f"✓ {_format.mentionuser(sweet.first_name ,sweet.id)} : __{msg.old.message}__"
+                    f"{msg.old.message}\n**Sent by** {_format.mentionuser(ruser.first_name ,ruser.id)}"
                 )
             else:
                 await main_msg.reply(
-                    f"✓ {_format.mentionuser(sweet.first_name ,sweet.id)} : __{msg.old.message}__",
+                    f"{msg.old.message}\n**Sent by** {_format.mentionuser(ruser.first_name ,ruser.id)}",
                     file=msg.old.media,
                 )

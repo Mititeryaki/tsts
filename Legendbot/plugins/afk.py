@@ -5,11 +5,11 @@ from telethon.tl import functions, types
 
 from Legendbot import legend
 
+from ..Config import Config
 from ..core.logger import logging
 from ..core.managers import eod, eor
 from ..helpers.tools import media_type
 from ..helpers.utils import _format
-from ..sql_helper.globals import gvarstatus
 from . import BOTLOG, BOTLOG_CHATID
 
 menu_category = "utils"
@@ -84,6 +84,7 @@ async def set_not_afk(event):
     incoming=True, func=lambda e: bool(e.mentioned or e.is_private), edited=False
 )
 async def on_afk(event):  # sourcery no-metrics
+    # sourcery skip: low-code-quality
     if AFK_.afk_on is False:
         return
     back_alivee = datetime.now()
@@ -140,16 +141,14 @@ async def on_afk(event):  # sourcery no-metrics
         if event.is_private:
             return
         hmm = await event.get_chat()
-        if gvarstatus("AFKFWD") is None:
-            return False
-        if gvarstatus("AFKFWD") == "OFF":
-            return False
+        if Config.PM_LOGGER_GROUP_ID == -100:
+            return
         full = None
         try:
             full = await event.client.get_entity(event.message.from_id)
         except Exception as e:
             LOGS.info(str(e))
-        messaget = media_type(event)
+        messaget = await media_type(event)
         resalt = f"#AFK_TAGS \n<b>Group : </b><code>{hmm.title}</code>"
         if full is not None:
             resalt += f"\n<b>From : </b> 👤{_format.htmlmentionuser(full.first_name , full.id)}"
@@ -160,7 +159,7 @@ async def on_afk(event):  # sourcery no-metrics
         resalt += f"\n<b>Message link: </b><a href = 'https://t.me/c/{hmm.id}/{event.message.id}'> link</a>"
         if not event.is_private:
             await event.client.send_message(
-                BOTLOG_CHATID,
+                Config.PM_LOGGER_GROUP_ID,
                 resalt,
                 parse_mode="html",
                 link_preview=False,
@@ -183,7 +182,7 @@ async def on_afk(event):  # sourcery no-metrics
         "note": "Switches off AFK when you type back anything, anywhere. You can use #afk in message to continue in afk without breaking it",
     },
 )
-async def afk(event):
+async def _(event):
     "To mark yourself as afk i.e. Away from keyboard"
     AFK_.USERAFK_ON = {}
     AFK_.afk_time = None
@@ -240,10 +239,10 @@ async def afk(event):
         "note": "Switches off AFK when you type back anything, anywhere. You can use #afk in message to continue in afk without breaking it",
     },
 )
-async def mafk(event):
+async def _(event):
     "To mark yourself as afk i.e. Away from keyboard (supports media)"
     reply = await event.get_reply_message()
-    media_t = media_type(reply)
+    media_t = await media_type(reply)
     if media_t == "Sticker" or not media_t:
         return await eor(
             event, "`You haven't replied to any media to activate media afk`"
