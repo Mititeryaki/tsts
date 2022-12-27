@@ -24,6 +24,7 @@ from telethon.tl import types
 
 from .utils import _legendutils
 
+# //Random colors for name
 COLORS = [
     "#F07975",
     "#F49F69",
@@ -35,48 +36,55 @@ COLORS = [
     "#E181AC",
 ]
 
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
-def file_check():
+def file_check(re=True, me=True, mo=True, it=True, fa=True, sp=True, go=False):
     regular = "./temp/Roboto-Regular.ttf"
     medium = "./temp/Roboto-Medium.ttf"
     mono = "./temp/DroidSansMono.ttf"
     italic = "./temp/Roboto-Italic.ttf"
     fallback = "./temp/Quivira.otf"
     special = "./temp/ArialUnicodeMS.ttf"
+    google = "./temp/GoogleSans-Medium.ttf"
     if not os.path.isdir("./temp/"):
-        os.mkdir("./temp/", 0o755)
-    if not os.path.exists(regular):
+        os.mkdir("./temp/")
+    if re and not os.path.exists(regular):
         urllib.request.urlretrieve(
             "https://github.com/erenmetesar/modules-repo/raw/master/Roboto-Regular.ttf",
             regular,
         )
-    if not os.path.exists(medium):
+    if me and not os.path.exists(medium):
         urllib.request.urlretrieve(
             "https://github.com/erenmetesar/modules-repo/raw/master/Roboto-Medium.ttf",
             medium,
         )
-    if not os.path.exists(mono):
+    if mo and not os.path.exists(mono):
         urllib.request.urlretrieve(
             "https://github.com/erenmetesar/modules-repo/raw/master/DroidSansMono.ttf",
             mono,
         )
-    if not os.path.exists(italic):
+    if it and not os.path.exists(italic):
         urllib.request.urlretrieve(
             "https://github.com/erenmetesar/modules-repo/raw/master/Roboto-Italic.ttf",
             italic,
         )
-    if not os.path.exists(fallback):
+    if fa and not os.path.exists(fallback):
         urllib.request.urlretrieve(
             "https://github.com/erenmetesar/modules-repo/raw/master/Quivira.otf",
             fallback,
         )
-    if not os.path.exists(special):
+    if sp and not os.path.exists(special):
         urllib.request.urlretrieve(
-            "https://github.com/ITS-LEGENDBOT/RESOURCES/blob/master/Resources/Spotify/ArialUnicodeMS.ttf?raw=true",
+            "https://github.com/LEGEND-AI/LEGENDUSERBOT-Resources/blob/master/Resources/Spotify/ArialUnicodeMS.ttf?raw=true",
             special,
+        )
+    if go and not os.path.exists(google):
+        urllib.request.urlretrieve(
+            "https://github.com/LEGEND-AI/LEGENDUSERBOT-Resources/blob/master/Resources/Spotify/GoogleSans-Medium.ttf?raw=true",
+            google,
         )
 
 
@@ -114,14 +122,18 @@ async def process(msg, user, client, reply, event, replied=None):  # sourcery no
                     width = fallback.getsize(line)[0]
             maxlength = max(maxlength, length)
     title = ""
-    try:
-        details = await client.get_permissions(reply.chat_id, user.id)
-        if isinstance(details.participant, types.ChannelParticipantCreator):
-            title = details.participant.rank if details.participant.rank else "Creator"
-        elif isinstance(details.participant, types.ChannelParticipantAdmin):
-            title = details.participant.rank if details.participant.rank else "Admin"
-    except TypeError:
-        pass
+    # try:
+    #     details = await client.get_permissions(event.chat_id, user.id)
+    #     if isinstance(details.participant, types.ChannelParticipantCreator):
+    #         title = details.participant.rank if details.participant.rank else "Creator"
+    #     elif isinstance(details.participant, types.ChannelParticipantAdmin):
+    #         title = details.participant.rank if details.participant.rank else "Admin"
+    # except UserNotParticipantError:
+    #     pass
+    # except TypeError:
+    #     pass
+    # except ValueError:
+    #     pass
     titlewidth = font2.getsize(title)[0]
 
     # Get user name
@@ -173,7 +185,7 @@ async def process(msg, user, client, reply, event, replied=None):  # sourcery no
         # Creating a big canvas to gather all the elements
         replname = "" if not replied.sender.last_name else replied.sender.last_name
         reptot = replied.sender.first_name + " " + replname
-        if reply.sticker:
+        if reply and reply.sticker:
             sticker = await reply.download_media()
             file_1 = os.path.join("./temp/", "q.png")
             if sticker.endswith(("tgs")):
@@ -216,7 +228,7 @@ async def process(msg, user, client, reply, event, replied=None):  # sourcery no
             len(title),
         )
         y = 200
-    elif reply.sticker and reply.sticker:
+    elif reply and reply.sticker:
         sticker = await reply.download_media()
         file_1 = os.path.join("./temp/", "q.png")
         if sticker.endswith(("tgs")):
@@ -254,7 +266,7 @@ async def process(msg, user, client, reply, event, replied=None):  # sourcery no
         canvas.paste(top, (pfpbg.width, 0))
         canvas.paste(middle, (pfpbg.width, top.height))
         canvas.paste(bottom, (pfpbg.width, top.height + middle.height))
-        canvas = await swtdoctype(docname, docsize, doctype, canvas)
+        canvas = await legenddoctype(docname, docsize, doctype, canvas)
         y = 80 if text else 0
     else:
         canvas.paste(pfpbg, (0, 0))
@@ -262,7 +274,6 @@ async def process(msg, user, client, reply, event, replied=None):  # sourcery no
         canvas.paste(middle, (pfpbg.width, top.height))
         canvas.paste(bottom, (pfpbg.width, top.height + middle.height))
         y = 85
-
     # Writing User's Name
     space = pfpbg.width + 30
     namefallback = ImageFont.truetype("./temp/Quivira.otf", 43, encoding="utf-16")
@@ -333,6 +344,7 @@ async def process(msg, user, client, reply, event, replied=None):  # sourcery no
                     draw.text((x, y), letter, font=sepcialt, fill=textcolor)
                     x += sepcialt.getsize(letter)[0]
             msg = msg.replace(letter, "¶", 1)
+        y += 40
         x = pfpbg.width + 30
     return True, canvas
 
@@ -386,7 +398,7 @@ async def get_entity(msg):
     return bold, mono, italic, link
 
 
-async def swtdoctype(name, size, htype, canvas):
+async def legenddoctype(name, size, htype, canvas):
     font = ImageFont.truetype("./temp/Roboto-Medium.ttf", 38)
     doc = Image.new("RGBA", (130, 130), (29, 29, 29, 255))
     draw = ImageDraw.Draw(doc)
@@ -409,7 +421,7 @@ async def no_photo(tot):
     letter = "" if not tot else tot[0]
     font = ImageFont.truetype("./temp/Roboto-Regular.ttf", 60)
     pen.text((32, 17), letter, font=font, fill="white")
-    return (pfp,)
+    return pfp, color
 
 
 async def emoji_fetch(emoji):

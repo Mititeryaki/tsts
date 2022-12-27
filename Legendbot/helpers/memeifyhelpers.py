@@ -1,3 +1,4 @@
+import itertools
 from os import getcwd
 from os.path import join
 from textwrap import wrap
@@ -7,7 +8,7 @@ from colour import Color as asciiColor
 from PIL import Image, ImageDraw, ImageFont
 from wand.color import Color
 from wand.drawing import Drawing
-from wand.image import Image as swtimage
+from wand.image import Image as legendimage
 
 from .utils import _legendutils
 
@@ -50,7 +51,7 @@ def get_warp_length(width):
     return int((20.0 / 1024.0) * (width + 0.0))
 
 
-async def swt_meme(CNG_FONTS, topString, bottomString, filename, endname):
+async def lol_meme(CNG_FONTS, topString, bottomString, filename, endname):
     img = Image.open(filename)
     imageSize = img.size
     # find biggest font size that works
@@ -77,27 +78,28 @@ async def swt_meme(CNG_FONTS, topString, bottomString, filename, endname):
     # draw outlines
     # there may be a better way
     outlineRange = fontSize // 15
-    for x in range(-outlineRange, outlineRange + 1):
-        for y in range(-outlineRange, outlineRange + 1):
-            draw.text(
-                (topTextPosition[0] + x, topTextPosition[1] + y),
-                topString,
-                (0, 0, 0),
-                font=font,
-            )
-            draw.text(
-                (bottomTextPosition[0] + x, bottomTextPosition[1] + y),
-                bottomString,
-                (0, 0, 0),
-                font=font,
-            )
+    for x, y in itertools.product(
+        range(-outlineRange, outlineRange + 1), range(-outlineRange, outlineRange + 1)
+    ):
+        draw.text(
+            (topTextPosition[0] + x, topTextPosition[1] + y),
+            topString,
+            (0, 0, 0),
+            font=font,
+        )
+        draw.text(
+            (bottomTextPosition[0] + x, bottomTextPosition[1] + y),
+            bottomString,
+            (0, 0, 0),
+            font=font,
+        )
     draw.text(topTextPosition, topString, (255, 255, 255), font=font)
     draw.text(bottomTextPosition, bottomString, (255, 255, 255), font=font)
     img.save(endname)
 
 
-async def swt_meeme(upper_text, lower_text, CNG_FONTS, picture_name, endname):
-    main_image = swtimage(filename=picture_name)
+async def lol_meeme(upper_text, lower_text, CNG_FONTS, picture_name, endname):
+    main_image = legendimage(filename=picture_name)
     main_image.resize(
         1024, int(((main_image.height * 1.0) / (main_image.width * 1.0)) * 1024.0)
     )

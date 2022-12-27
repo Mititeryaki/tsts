@@ -1,20 +1,19 @@
 from . import fonts
-from . import memeshelper as swtmemes
+from . import memeshelper as legendmemes
 from .aiohttp_helper import AioHttp
 from .utils import *
 
-type = True
+flag = True
 check = 0
-while type:
+while flag:
     try:
-        from . import nsfw as useless
         from .chatbot import *
         from .functions import *
         from .memeifyhelpers import *
         from .progress import *
-        from .qhelper import process
+        from .qhelper import *
         from .tools import *
-        from .utils import _format, _legendtools, _legendutils
+        from .utils import _format, _legendutils
 
         break
     except ModuleNotFoundError as e:
