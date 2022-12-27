@@ -24,7 +24,6 @@ legendboy = 2024465080
 import os
 
 import heroku3
-import urllib3
 
 from ..Config import Config
 
