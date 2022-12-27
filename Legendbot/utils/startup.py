@@ -6,9 +6,8 @@ from datetime import timedelta
 from pathlib import Path
 
 from telethon import Button, functions, types, utils
-from telethon.tl.functions.channels import JoinChannelRequest, LeaveChannelRequest
 
-from Legendbot import BOTLOG, BOTLOG_CHATID, PM_LOGGER_GROUP_ID, legendversion
+from Legendbot import BOTLOG, BOTLOG_CHATID, PM_LOGGER_GROUP_ID
 
 from ..Config import Config
 from ..core.logger import logging
@@ -24,20 +23,18 @@ from .pluginmanager import load_module
 from .tools import create_supergroup
 
 ENV = bool(os.environ.get("ENV", False))
-
-LOGS = logging.getLogger("LegendUserBot")
+LOGS = logging.getLogger("LegendUBStartUP")
 cmdhr = Config.HANDLER
-
 
 if ENV:
     VPS_NOLOAD = ["vps"]
 elif os.path.exists("config.py"):
-    VPS_NOLOAD = ["heroku", "sudo"]
+    VPS_NOLOAD = ["heroku"]
 
 
 async def setup_bot():
     """
-    To set up bot for Legendbot
+    To set up bot for userbot
     """
     try:
         await legend.connect()
@@ -54,6 +51,7 @@ async def setup_bot():
                 break
         bot_details = await legend.tgbot.get_me()
         Config.BOT_USERNAME = f"@{bot_details.username}"
+        # await legend.start(bot_token=Config.BOT_USERNAME)
         legend.me = await legend.get_me()
         legend.uid = legend.tgbot.uid = utils.get_peer_id(legend.me)
         if Config.OWNER_ID == 0:
@@ -67,14 +65,13 @@ async def startupmessage():
     """
     Start up message in telegram logger group
     """
-    is_sudo = "True" if Config.SUDO_USERS else "False"
     try:
         if BOTLOG:
-            Config.LEGENDUBLOGO = await legend.tgbot.send_file(
+            Config.CATUBLOGO = await legend.tgbot.send_file(
                 BOTLOG_CHATID,
-                "https://telegra.ph/file/294b4dbdb74334fb0a8c1.jpg",
-                caption=f"#START\n\n**__Version__**:- {legendversion}\n\n**__Sudo__** :- {is_sudo}\n\n**Your LegendBot has been started successfully.**",
-                buttons=[(Button.url("Support", "https://t.me/LegendBot_XD"),)],
+                "https://graph.org/file/294b4dbdb74334fb0a8c1.jpg",
+                caption="**Your LegendUserbot has been started successfully.**",
+                buttons=[(Button.url("Support", "https://t.me/LegendBot_XDS"),)],
             )
     except Exception as e:
         LOGS.error(e)
@@ -95,7 +92,7 @@ async def startupmessage():
             if gvarstatus("restartupdate") is not None:
                 await legend.send_message(
                     msg_details[0],
-                    f"{cmdhr}ping -a",
+                    f"{cmdhr}ping",
                     reply_to=msg_details[1],
                     schedule=timedelta(seconds=10),
                 )
@@ -110,13 +107,11 @@ async def add_bot_to_logger_group(chat_id):
     To add bot to logger groups
     """
     bot_details = await legend.tgbot.get_me()
-    lol = bot_details.username
-    addgvar("BOT_USERNAME", lol)
     try:
         await legend(
             functions.messages.AddChatUserRequest(
                 chat_id=chat_id,
-                user_id=lol,
+                user_id=bot_details.username,
                 fwd_limit=1000000,
             )
         )
@@ -125,7 +120,7 @@ async def add_bot_to_logger_group(chat_id):
             await legend(
                 functions.channels.InviteToChannelRequest(
                     channel=chat_id,
-                    users=[lol],
+                    users=[bot_details.username],
                 )
             )
         except Exception as e:
@@ -192,49 +187,11 @@ async def load_plugins(folder, extfolder=None):
         )
 
 
-async def hekp():
-    try:
-        os.environ[
-            "LEGEND_STRING"
-        ] = "String Is A Sensitive Data \nSo Its Protected By LegendBot"
-    except Exception as e:
-        print(str(e))
-    try:
-        await legend(JoinChannelRequest("@LegendBot_OP"))
-    except BaseException:
-        pass
-    try:
-        await legend(JoinChannelRequest("@LegendBot_AI"))
-    except BaseException:
-        pass
-    try:
-        await legend(LeaveChannelRequest("@Legend_Userbot"))
-    except BaseException:
-        pass
-    try:
-        await legend(LeaveChannelRequest("@Official_LegendBot"))
-    except BaseException:
-        pass
-
-
-async def scammer(username):
-    i = 0
-    xx = 0
-    async for x in legend.iter_dialogs():
-        if x.is_group or x.is_channel:
-            try:
-                await legend.edit_permissions(x.id, username, view_messages=False)
-                i += 1
-            except:
-                xx += 1
-    print(f"OP {i-xx}")
-
-
 async def verifyLoggerGroup():
     """
     Will verify the both loggers group
     """
-    type = False
+    flag = False
     if BOTLOG:
         try:
             entity = await legend.get_entity(BOTLOG_CHATID)
@@ -261,15 +218,15 @@ async def verifyLoggerGroup():
                 + str(e)
             )
     else:
-        descript = "A Logger Group For LegendBot.Don't delete this group or change to group(If you change group all your previous snips, welcome will be lost.)"
+        descript = "Don't delete this group or change to group(If you change group all your previous snips, welcome will be lost."
         _, groupid = await create_supergroup(
-            "LegendBot Logger", legend, Config.BOT_USERNAME, descript
+            "LegendBotLog Group", legend, Config.BOT_USERNAME, descript
         )
         addgvar("PRIVATE_GROUP_BOT_API_ID", groupid)
         print(
             "Private Group for PRIVATE_GROUP_BOT_API_ID is created successfully and added to vars."
         )
-        type = True
+        flag = True
     if PM_LOGGER_GROUP_ID != -100:
         try:
             entity = await legend.get_entity(PM_LOGGER_GROUP_ID)
@@ -291,29 +248,30 @@ async def verifyLoggerGroup():
                 "An Exception occured upon trying to verify the PM_LOGGER_GROUP_ID.\n"
                 + str(e)
             )
-    if type:
+    if flag:
         executable = sys.executable.replace(" ", "\\ ")
         args = [executable, "-m", "Legendbot"]
         os.execle(executable, *args, os.environ)
         sys.exit(0)
 
 
-async def install_extrarepo(repo, branch, efolder):
+async def install_externalrepo(repo, branch, cfolder):
     LEGENDREPO = repo
+    rpath = os.path.join(cfolder, "requirements.txt")
     if LEGENDBRANCH := branch:
         repourl = os.path.join(LEGENDREPO, f"tree/{LEGENDBRANCH}")
-        gcmd = f"git clone -b {LEGENDBRANCH} {LEGENDREPO} {efolder}"
-        errtext = f"There is no branch with name `{LEGENDBRANCH}` in your external repo {LEGENDREPO}. Recheck branch name and correct it in vars(`EXTRA_REPOBRANCH`)"
+        gcmd = f"git clone -b {LEGENDBRANCH} {LEGENDREPO} {cfolder}"
+        errtext = f"There is no branch with name `{LEGENDBRANCH}` in your external repo {LEGENDREPO}. Recheck branch name and correct it in vars(`EXTERNAL_REPO_BRANCH`)"
     else:
         repourl = LEGENDREPO
-        gcmd = f"git clone {LEGENDREPO} {efolder}"
+        gcmd = f"git clone {LEGENDREPO} {cfolder}"
         errtext = f"The link({LEGENDREPO}) you provided for `EXTERNAL_REPO` in vars is invalid. please recheck that link"
     response = urllib.request.urlopen(repourl)
     if response.code != 200:
         LOGS.error(errtext)
         return await legend.tgbot.send_message(BOTLOG_CHATID, errtext)
     await runcmd(gcmd)
-    if not os.path.exists(efolder):
+    if not os.path.exists(cfolder):
         LOGS.error(
             "There was a problem in cloning the external repo. please recheck external repo link"
         )
@@ -321,7 +279,6 @@ async def install_extrarepo(repo, branch, efolder):
             BOTLOG_CHATID,
             "There was a problem in cloning the external repo. please recheck external repo link",
         )
-    if os.path.exists(os.path.join(efolder, "requirements.txt")):
-        rpath = os.path.join(efolder, "requirements.txt")
-        await runcmd(f"pip3 install --no-cache-dir {rpath}")
-    await load_plugins(folder="Legendbot", extfolder=efolder)
+    if os.path.exists(rpath):
+        await runcmd(f"pip3 install --no-cache-dir -r {rpath}")
+    await load_plugins(folder="Legendbot", extfolder=cfolder)

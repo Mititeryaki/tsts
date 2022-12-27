@@ -1,3 +1,4 @@
+import contextlib
 import importlib
 import sys
 from pathlib import Path
@@ -9,11 +10,10 @@ from ..core import LOADED_CMDS, PLG_INFO
 from ..core.logger import logging
 from ..core.managers import eod, eor
 from ..core.session import legend
-from ..helpers.tools import media_type
-from ..helpers.utils import _format, _legendtools, _legendutils, install_pip, reply_id
+from ..helpers.utils import _format, _legendutils, install_pip, reply_id
 from .decorators import admin_cmd, sudo_cmd
 
-LOGS = logging.getLogger("LegendUserBot")
+LOGS = logging.getLogger("LegendUserbot")
 
 
 def load_module(shortname, plugin_path=None):
@@ -22,11 +22,11 @@ def load_module(shortname, plugin_path=None):
     elif shortname.endswith("_"):
         path = Path(f"Legendbot/plugins/{shortname}.py")
         checkplugins(path)
-        name = "Legendbot.plugins.{}".format(shortname)
+        name = f"Legendbot.plugins.{shortname}"
         spec = importlib.util.spec_from_file_location(name, path)
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
-        LOGS.info("Successfully imported " + shortname)
+        LOGS.info(f"Successfully imported {shortname}")
     else:
         if plugin_path is None:
             path = Path(f"Legendbot/plugins/{shortname}.py")
@@ -47,8 +47,6 @@ def load_module(shortname, plugin_path=None):
         mod.reply_id = reply_id
         mod.admin_cmd = admin_cmd
         mod._legendutils = _legendutils
-        mod._legendtools = _legendtools
-        mod.media_type = media_type
         mod.eod = eod
         mod.install_pip = install_pip
         mod.parse_pre = _format.parse_pre
@@ -57,8 +55,8 @@ def load_module(shortname, plugin_path=None):
         mod.borg = legend
         spec.loader.exec_module(mod)
         # for imports
-        sys.modules["Legendbot.plugins." + shortname] = mod
-        LOGS.info("LegendBot " + shortname)
+        sys.modules[f"Legendbot.plugins.{shortname}"] = mod
+        LOGS.info(f"Successfully imported {shortname}")
 
 
 def remove_plugin(shortname):
@@ -76,20 +74,18 @@ def remove_plugin(shortname):
         return True
     except Exception as e:
         LOGS.error(e)
-    try:
+    with contextlib.suppress(BaseException):
         for i in LOAD_PLUG[shortname]:
             legend.remove_event_handler(i)
         del LOAD_PLUG[shortname]
-    except BaseException:
-        pass
     try:
         name = f"Legendbot.plugins.{shortname}"
         for i in reversed(range(len(legend._event_builders))):
             ev, cb = legend._event_builders[i]
             if cb.__module__ == name:
                 del legend._event_builders[i]
-    except BaseException:
-        raise ValueError
+    except BaseException as exc:
+        raise ValueError from exc
 
 
 def checkplugins(filename):

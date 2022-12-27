@@ -69,6 +69,7 @@ def admin_cmd(pattern=None, command=None, **args):  # sourcery no-metrics
 
 
 def sudo_cmd(pattern=None, command=None, **args):  # sourcery no-metrics
+    # sourcery skip: low-code-quality
     args["func"] = lambda e: e.via_bot_id is None
     stack = inspect.stack()
     previous_stack_frame = stack[1]
@@ -157,10 +158,11 @@ def errors_handler(func):
             result = output[0] + output[1]
             ftext += result
             pastelink = await paste_message(ftext)
-            text = "**LegendBot Error report**\n\n"
             link = "[here](https://t.me/LegendBot_OP)"
-            text += "If you wanna you can report it"
-            text += f"Just forward this message {link}.\n"
+            text = (
+                "**LegendUserbot Error report**\n\n" + "If you wanna you can report it"
+            )
+            text += f"- just forward this message {link}.\n"
             text += "Nothing is logged except the fact of error and date\n\n"
             text += f"**Error report : ** [{new['error']}]({pastelink})"
             await check.client.send_message(
