@@ -31,24 +31,47 @@ cmhd = Config.HANDLER
 @legend.bot_cmd(pattern="^/help$", from_users=Config.OWNER_ID)
 async def bot_help(event):
     await event.reply(
-        f"""The commands in the bot are:
-**Note : **__This commands work only in this bot__ {botusername}
-
-• **Cmd : **/uinfo <reply to user message>
-• **Info : **__You have noticed that forwarded stickers/emoji doesn't have forward tag so you can identify the user who sent thoose messages by this cmd.__
-• **Note : **__It works for all forwarded messages. even for users who's permission forward message nobody.__
-
-• **Cmd : **/ban <reason> or /ban <username/userid> <reason>
-• **Info : **__Reply to a user message with reason so he will be notified as you banned from the bot and his messages will not be forworded to you further.__
-• **Note : **__Reason is must. without reason it won't work. __
-
-• **Cmd : **/unban <reason(optional)> or /unban <username/userid>
-• **Info : **__Reply to user message or provide username/userid to unban from the bot.__
-• **Note : **__To check banned users list use__ `{cmhd}bblist`.
-
-• **Cmd : **/broadcast
-• **Info : **__Reply to a message to get broadcasted to every user who started your bot. To get list of users use__ `{cmhd}bot_users`.
-• **Note : **__if user stoped/blocked the bot then he will be removed from your database that is he will erased from the bot_starters list.__
+       f"""**👨‍💻 Note : **__This commands work only in this bot__ {botusername}
+🔰 Add this Bot In Group To Access Command In Group 🔰**
+♦️ **Cmd : **/alive
+🚩 **Info : **__To Check Bot Is Alive Or Not__
+👨‍💻 **Note : **__ It Can Be Used By Anyone Add this Bot In Group__
+♦️ **Cmd : **/ping
+🚩 **Info : **__To Check Your Bot Ping__
+👨‍💻 **Note : **__It Can Be Used By Anyone Add This Bot In Group__
+♦️ **Cmd : **/purge <reply to message>
+🚩 **Info : **__To delete message from where u have tagged that message__
+👨‍💻 **Note : **__Used It In Group/Bot Chat__
+♦️ **Cmd : **/del <reply to message>
+🚩 **Info : **__Reply to message to delete that message__
+👨‍💻 **Note : **__Used In Group/Bot chat__
+♦️ **Cmd : **/bigspam <value> <text>
+🚩 **Info : **__Used To Spam Group/Bot Spam__
+👨‍💻 **Note : **__Value Must Be Great than 100__
+♦️ **Cmd : **/raid <value> <reply to any message>
+🚩 **Info : **__To Start Raid as your value__
+👨‍💻 **Note : **__No Flood Add this Bot in Group and used this____
+♦️ **Cmd : **/replyraid <reply to person>
+🚩 **Info : **__To start raid on any person__
+👨‍💻 **Note : **__Used In Group For best No Flood__
+♦️ **Cmd : **/dreplyraid <reply to same person>
+🚩 **Info : **__To Stop Raid on__
+👨‍💻 **Note : **__ Reply to same person on which u have started__
+♦️ **Cmd : **/spam <value> <text>
+🚩 **Info : **__To Spam With Text__
+👨‍💻 **Note : **__Value Must be less than 100__
+♦️ **Cmd : **/uinfo <reply to user message>
+🚩 **Info : **__You have noticed that forwarded stickers/emoji doesn't have forward tag so you can identify the user who sent thoose messages by this cmd.__
+👨‍💻 **Note : **__It works for all forwarded messages. even for users who's permission forward message nobody.__
+♦️ **Cmd : **/ban <reason> or /ban <username/userid> <reason>
+🚩 **Info : **__Reply to a user message with reason so he will be notified as you banned from the bot and his messages will not be forworded to you further.__
+👨‍💻 **Note : **__Reason is must. without reason it won't work. __
+♦️ **Cmd : **/unban <reason(optional)> or /unban <username/userid>
+🚩 **Info : **__Reply to user message or provide username/userid to unban from the bot.__
+👨‍💻 **Note : **__To check banned users list use__ `{cmhd}bblist`.
+♦️ **Cmd :** /broadcast
+🚩 **Info :** __Reply to a message to get broadcasted to every user who started your bot. To get list of users use__ `{cmhd}bot_users`.
+👨‍💻 **Note :** if user stoped/blocked the bot then he will be removed from your database that is he will erased from the bot_starters list
 """
     )
 
