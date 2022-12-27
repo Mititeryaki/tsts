@@ -21,6 +21,3 @@ class Development(Config):
     HANDLER = "."
     # command hanler for sudo
     SUDO_HANDLER = "."
-
-    
-   
