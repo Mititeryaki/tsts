@@ -28,11 +28,29 @@ heroku_api = "https://api.heroku.com"
 HEROKU_APP_NAME = Config.HEROKU_APP_NAME
 HEROKU_API_KEY = Config.HEROKU_API_KEY
 
+
+
 thumb_image_path = os.path.join(Config.TMP_DOWNLOAD_DIRECTORY, "thumb_image.jpg")
 
 # mention user
 mention = f"[{Config.ALIVE_NAME}](tg://user?id={USERID})"
+legend_mention = mention
 hmention = f"<a href = tg://user?id={USERID}>{Config.ALIVE_NAME}</a>"
+
+#pic
+# pic
+gban_pic = "./Legendbot/helpers/resources/pics/gban.mp4"
+main_pic = "./Legendbot/helpers/resources/pics/main.jpg"
+core_pic = "./Legendbot/helpers/resources/pics/core.jpg"
+chup_pic = "./Legendbot/helpers/resources/pics/chup.mp4"
+bsdk_pic = "./Legendbot/helpers/resources/pics/bsdk.jpg"
+bsdkwale_pic = "./Legendbot/helpers/resources/pics/bsdk_wale.jpg"
+chutiya_pic = "./Legendbot/helpers/resources/pics/chutiya.jpg"
+promote_pic = "./Legendbot/helpers/resources/pics/promote.jpg"
+demote_pic = "./Legendbot/helpers/resources/pics/demote.jpg"
+mute_pic = "./Legendbot/helpers/resources/pics/mute.jpg"
+ban_pic = "./Legendbot/helpers/resources/pics/ban.jpg"
+
 
 PM_START = []
 PMMESSAGE_CACHE = {}
@@ -74,3 +92,17 @@ def set_key(dictionary, key, value):
         dictionary[key].append(value)
     else:
         dictionary[key] = [dictionary[key], value]
+        
+      
+
+    
+async def make_gif(event, reply, quality=None, fps=None):
+    fps = fps or 1
+    quality = quality or 256
+    result_p = os.path.join("temp", "animation.gif")
+    animation = lottie.parsers.tgs.parse_tgs(reply)
+    with open(result_p, "wb") as result:
+        await _legendutils.run_sync(
+            lottie.exporters.gif.export_gif, animation, result, quality, fps
+        )
+    return result_p
