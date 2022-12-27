@@ -7,19 +7,20 @@ import heroku3
 from .Config import Config
 from .core.logger import logging
 from .core.session import legend
+from .helpers.functions.converter import Convert
+from .helpers.functions.musictool import *
 from .helpers.utils.utils import runasync
 from .sql_helper.globals import addgvar, delgvar, gvarstatus
 
-__version__ = "α • 2.1"
+__version__ = "3.2.1"
 __license__ = "GNU Affero General Public License v3.0"
-__author__ = "LegendBot <https://github.com/ITS-LEGENDBOT/LEGENDBOT>"
-__copyright__ = f"LegendBot Copyright (C) 2020 - 2021  { __author__}"
+__author__ = "LegendUserBot <https://github.com/LEGEND-AI/LEGENDUSERBOT>"
+__copyright__ = f"LegendUserBot Copyright (C) 2020 - 2021  {__author__}"
 
 legend.version = __version__
 legend.tgbot.version = __version__
-LOGS = logging.getLogger("LegendUserBot")
+LOGS = logging.getLogger("LegendUserbot")
 bot = legend
-
 
 StartTime = time.time()
 legendversion = "α • 2.1"
@@ -33,13 +34,7 @@ def close_connection(*_):
 
 signal.signal(signal.SIGTERM, close_connection)
 
-
-if Config.UPSTREAM_REPO == "pro":
-    UPSTREAM_REPO_URL = "https://github.com/ITS-LEGENDBOT/LEGENDBOT"
-elif Config.UPSTREAM_REPO == "multi":
-    UPSTREAM_REPO_URL = "https://github.com/ITS-LEGENDBOT/LEGENDUSERBOT"
-else:
-    UPSTREAM_REPO_URL = Config.UPSTREAM_REPO
+UPSTREAM_REPO_URL = Config.UPSTREAM_REPO
 
 if Config.PRIVATE_GROUP_BOT_API_ID == 0:
     if gvarstatus("PRIVATE_GROUP_BOT_API_ID") is None:
@@ -51,7 +46,7 @@ if Config.PRIVATE_GROUP_BOT_API_ID == 0:
         Config.BOTLOG = True
 else:
     if str(Config.PRIVATE_GROUP_BOT_API_ID)[0] != "-":
-        Config.BOTLOG_CHATID = int("-" + str(Config.PRIVATE_GROUP_BOT_API_ID))
+        Config.BOTLOG_CHATID = int(f"-{str(Config.PRIVATE_GROUP_BOT_API_ID)}")
     else:
         Config.BOTLOG_CHATID = Config.PRIVATE_GROUP_BOT_API_ID
     Config.BOTLOG = True
@@ -65,8 +60,10 @@ elif str(Config.PM_LOGGER_GROUP_ID)[0] != "-":
     Config.PM_LOGGER_GROUP_ID = int(f"-{str(Config.PM_LOGGER_GROUP_ID)}")
 
 try:
-    if Config.API_KEY is not None or Config.APP_NAME is not None:
-        HEROKU_APP = heroku3.from_key(Config.API_KEY).apps()[Config.APP_NAME]
+    if Config.HEROKU_API_KEY is not None or Config.HEROKU_APP_NAME is not None:
+        HEROKU_APP = heroku3.from_key(Config.HEROKU_API_KEY).apps()[
+            Config.HEROKU_APP_NAME
+        ]
     else:
         HEROKU_APP = None
 except Exception:
