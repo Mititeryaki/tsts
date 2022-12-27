@@ -4,9 +4,8 @@ from Legendbot import legend
 
 from ..core.managers import eod, eor
 from ..helpers.functions.functions import getTranslate
-from ..helpers.functions.utils import soft_deEmojify
 from ..sql_helper.globals import addgvar, gvarstatus
-from . import BOTLOG, BOTLOG_CHATID
+from . import BOTLOG, BOTLOG_CHATID, soft_deEmojify
 
 menu_category = "utils"
 
@@ -16,7 +15,7 @@ menu_category = "utils"
     command=("tl", menu_category),
     info={
         "header": "To translate the text to required language.",
-        "note": "For langugage codes check [this link](https://da.gd/ueaQbH)",
+        "note": "For langugage codes check [this link](https://bit.ly/2SRQ6WU)",
         "usage": [
             "{tr}tl <language code> ; <text>",
             "{tr}tl <language codes>",
@@ -53,11 +52,10 @@ async def _(event):
     command=("trt", menu_category),
     info={
         "header": "To translate the text to required language.",
-        "note": "for this command set lanuage by `{tr}lang trt <code name>` command.",
+        "note": "for this command set lanuage by `{tr}lang trt` command.",
         "usage": [
             "{tr}trt",
             "{tr}trt <text>",
-            "{tr}trt <lang> ; <text>",
         ],
     },
 )
@@ -93,7 +91,7 @@ async def translateme(trans):
     command=("lang", menu_category),
     info={
         "header": "To set language for trt/ai command.",
-        "description": "Check here [Language codes](https://da.gd/ueaQbH)",
+        "description": "Check here [Language codes](https://bit.ly/2SRQ6WU)",
         "options": {
             "trt": "default language for trt command",
             "tocr": "default language for tocr command",
@@ -119,26 +117,29 @@ async def lang(value):
     LANG = LANGUAGES[arg]
     if input_str == "trt":
         addgvar("TRT_LANG", arg)
-        await eor(value, f"`Language for Translator changed to {LANG.title()}.`")
+        await eor(value, f"**Language for Translator changed to:** `{LANG.title()}`")
     elif input_str == "tocr":
         addgvar("TOCR_LANG", arg)
-        await eor(value, f"`Language for Translated Ocr changed to {LANG.title()}.`")
+        await eor(
+            value, f"**Language for Translated Ocr changed to:** `{LANG.title()}`"
+        )
     else:
         addgvar("AI_LANG", arg)
-        await eor(value, f"`Language for chatbot is changed to {LANG.title()}.`")
+        await eor(value, f"**Language for Chatbot is changed to:** `{LANG.title()}`")
     LANG = LANGUAGES[arg]
 
     if BOTLOG and input_str == "trt":
         await value.client.send_message(
-            BOTLOG_CHATID, f"`Language for Translator changed to {LANG.title()}.`"
+            BOTLOG_CHATID, f"**Language for Translator changed to:** `{LANG.title()}`"
         )
     if BOTLOG:
         if input_str == "tocr":
             await value.client.send_message(
                 BOTLOG_CHATID,
-                f"`Language for Translated Ocr changed to {LANG.title()}.`",
+                f"**Language for Translated Ocr changed to:** `{LANG.title()}`",
             )
         if input_str == "ai":
             await value.client.send_message(
-                BOTLOG_CHATID, f"`Language for chatbot is changed to {LANG.title()}.`"
+                BOTLOG_CHATID,
+                f"**Language for Chatbot is changed to:** `{LANG.title()}`",
             )

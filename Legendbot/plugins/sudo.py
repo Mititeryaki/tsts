@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 
 from telethon.utils import get_display_name
@@ -17,6 +18,7 @@ from ..sql_helper.globals import addgvar, delgvar, gvarstatus
 menu_category = "tools"
 
 LOGS = logging.getLogger(__name__)
+ENV = bool(os.environ.get("ENV", False))
 
 
 async def _init() -> None:
@@ -38,13 +40,13 @@ def get_key(val):
     pattern="sudo (on|off)$",
     command=("sudo", menu_category),
     info={
-        "header": "To enable or disable sudo of your Legenduserbot.",
+        "header": "To enable or disable sudo of your LegendLegendbot.",
         "description": "Initially all sudo commands are disabled, you need to enable them by addscmd\n Check `{tr}help -c addscmd`",
         "usage": "{tr}sudo <on/off>",
     },
 )
 async def chat_blacklist(event):
-    "To enable or disable sudo of your LegendUserBot."
+    "To enable or disable sudo of your LegendUserbot."
     input_str = event.pattern_match.group(1)
     sudousers = _sudousers_list()
     if input_str == "on":
@@ -120,30 +122,6 @@ async def add_sudo_user(event):
     sudousers[str(replied_user.id)] = userdata
     sql.del_collection("sudousers_list")
     sql.add_collection("sudousers_list", sudousers, {})
-    sudocmds = sudo_enabled_cmds()
-    totalcmds = CMD_INFO.keys()
-    typecmds = (
-        PLG_INFO["botcontrols"]
-        + PLG_INFO["autoprofile"]
-        + PLG_INFO["evaluators"]
-        + PLG_INFO["execmod"]
-        + PLG_INFO["heroku"]
-        + PLG_INFO["profile"]
-        + PLG_INFO["pmpermit"]
-        + PLG_INFO["custom"]
-        + PLG_INFO["blacklistchats"]
-        + PLG_INFO["corecmds"]
-        + PLG_INFO["groupactions"]
-        + PLG_INFO["sudo"]
-        + PLG_INFO["transfer_channel"]
-        + ["gauth"]
-        + ["greset"]
-    )
-    loadcmds = list(set(totalcmds) - set(typecmds))
-    if len(sudocmds) > 0:
-        sqllist.del_keyword_list("sudo_enabled_cmds")
-    for cmd in loadcmds:
-        sqllist.add_to_list("sudo_enabled_cmds", cmd)
     output = f"{mentionuser(userdata['chat_name'],userdata['chat_id'])} __is Added to your sudo users.__\n"
     output += "**Bot is reloading to apply the changes. Please wait for a minute**"
     msg = await eor(event, output)
@@ -182,11 +160,11 @@ async def _(event):
 
 
 @legend.legend_cmd(
-    pattern="listsudo$",
-    command=("listsudo", menu_category),
+    pattern="vsudo$",
+    command=("vsudo", menu_category),
     info={
         "header": "To list users for whom you are sudo.",
-        "usage": "{tr}listsudo",
+        "usage": "{tr}vsudo",
     },
 )
 async def _(event):
@@ -197,8 +175,8 @@ async def _(event):
     except AttributeError:
         sudousers = {}
     if len(sudochats) == 0:
-        return await eod(event, "__There are no sudo users for your Legenduserbot.__")
-    result = "**The list of sudo users for your LegendUserbot are :**\n\n"
+        return await eod(event, "__There are no sudo users for your LegendLegendbot.__")
+    result = "**The list of sudo users for your Legenduserbot are :**\n\n"
     for chat in sudochats:
         result += f"☞ **Name:** {mentionuser(sudousers[str(chat)]['chat_name'],sudousers[str(chat)]['chat_id'])}\n"
         result += f"**Chat Id :** `{chat}`\n"
@@ -230,7 +208,7 @@ async def _(event):
         ],
     },
 )
-async def _(event):  # sourcery no-metrics
+async def _(event):  # sourcery no-metrics  # sourcery skip: low-code-quality
     "To enable cmds for sudo users."
     input_str = event.pattern_match.group(2)
     errors = ""
@@ -241,12 +219,11 @@ async def _(event):  # sourcery no-metrics
     if input_str[0] == "-all":
         legendevent = await eor(event, "__Enabling all safe cmds for sudo....__")
         totalcmds = CMD_INFO.keys()
-        typecmds = (
+        flagcmds = (
             PLG_INFO["botcontrols"]
             + PLG_INFO["autoprofile"]
             + PLG_INFO["evaluators"]
             + PLG_INFO["execmod"]
-            + PLG_INFO["heroku"]
             + PLG_INFO["profile"]
             + PLG_INFO["pmpermit"]
             + PLG_INFO["custom"]
@@ -258,7 +235,8 @@ async def _(event):  # sourcery no-metrics
             + ["gauth"]
             + ["greset"]
         )
-        loadcmds = list(set(totalcmds) - set(typecmds))
+        flagcmds = flagcmds + PLG_INFO["heroku"] if ENV else flagcmds + PLG_INFO["vps"]
+        loadcmds = list(set(totalcmds) - set(flagcmds))
         if len(sudocmds) > 0:
             sqllist.del_keyword_list("sudo_enabled_cmds")
     elif input_str[0] == "-full":
@@ -273,7 +251,7 @@ async def _(event):  # sourcery no-metrics
         for plugin in input_str:
             if plugin not in PLG_INFO:
                 errors += (
-                    f"`{plugin}` __There is no such plugin in your LegendUserBot__.\n"
+                    f"`{plugin}` __There is no such plugin in your LegendUserbot__.\n"
                 )
             else:
                 loadcmds += PLG_INFO[plugin]
@@ -283,7 +261,7 @@ async def _(event):  # sourcery no-metrics
         for cmd in input_str:
             if cmd not in CMD_INFO:
                 errors += (
-                    f"`{cmd}` __There is no such command in your LegendUserBot__.\n"
+                    f"`{cmd}` __There is no such command in your LegendUserbot__.\n"
                 )
             elif cmd in sudocmds:
                 errors += f"`{cmd}` __Is already enabled for sudo users__.\n"
@@ -292,7 +270,7 @@ async def _(event):  # sourcery no-metrics
     for cmd in loadcmds:
         sqllist.add_to_list("sudo_enabled_cmds", cmd)
     result = (
-        f"__Successfully enabled __ `{len(loadcmds)}` __ for LegendUserBot sudo.__\n"
+        f"__Successfully enabled __ `{len(loadcmds)}` __ for LegendUserbot sudo.__\n"
     )
     output = (
         result + "**Bot is reloading to apply the changes. Please wait for a minute**\n"
@@ -310,12 +288,12 @@ async def _(event):  # sourcery no-metrics
         "header": "To disable given cmds for sudo.",
         "flags": {
             "-all": "Will disable all enabled cmds for sudo users.",
-            "-type": "Will disable all typeed cmds like eval, exec...etc.",
+            "-flag": "Will disable all flaged cmds like eval, exec...etc.",
             "-p": "Will disable all cmds from the given plugin names.",
         },
         "usage": [
             "{tr}rmscmd -all",
-            "{tr}rmscmd -type",
+            "{tr}rmscmd -flag",
             "{tr}rmscmd -p <plugin names>",
             "{tr}rmscmd <commands>",
         ],
@@ -325,7 +303,7 @@ async def _(event):  # sourcery no-metrics
         ],
     },
 )
-async def _(event):  # sourcery no-metrics
+async def _(event):  # sourcery no-metrics  # sourcery skip: low-code-quality
     "To disable cmds for sudo users."
     input_str = event.pattern_match.group(2)
     errors = ""
@@ -335,15 +313,14 @@ async def _(event):  # sourcery no-metrics
     input_str = input_str.split()
     if input_str[0] == "-all":
         legendevent = await eor(event, "__Disabling all enabled cmds for sudo....__")
-        typecmds = sudocmds
-    elif input_str[0] == "-type":
-        legendevent = await eor(event, "__Disabling all typeged cmds for sudo.....__")
-        typecmds = (
+        flagcmds = sudocmds
+    elif input_str[0] == "-flag":
+        legendevent = await eor(event, "__Disabling all flagged cmds for sudo.....__")
+        flagcmds = (
             PLG_INFO["botcontrols"]
             + PLG_INFO["autoprofile"]
             + PLG_INFO["evaluators"]
             + PLG_INFO["execmod"]
-            + PLG_INFO["heroku"]
             + PLG_INFO["profile"]
             + PLG_INFO["pmpermit"]
             + PLG_INFO["custom"]
@@ -355,35 +332,36 @@ async def _(event):  # sourcery no-metrics
             + ["gauth"]
             + ["greset"]
         )
+        flagcmds = flagcmds + PLG_INFO["heroku"] if ENV else flagcmds + PLG_INFO["vps"]
     elif input_str[0] == "-p":
         legendevent = event
         input_str.remove("-p")
-        typecmds = []
+        flagcmds = []
         for plugin in input_str:
             if plugin not in PLG_INFO:
                 errors += (
-                    f"`{plugin}` __There is no such plugin in your LegendUserBot__.\n"
+                    f"`{plugin}` __There is no such plugin in your LegendUserbot__.\n"
                 )
             else:
-                typecmds += PLG_INFO[plugin]
+                flagcmds += PLG_INFO[plugin]
     else:
         legendevent = event
-        typecmds = []
+        flagcmds = []
         for cmd in input_str:
             if cmd not in CMD_INFO:
                 errors += (
-                    f"`{cmd}` __There is no such command in your LegendUserBot__.\n"
+                    f"`{cmd}` __There is no such command in your LegendUserbot__.\n"
                 )
             elif cmd not in sudocmds:
                 errors += f"`{cmd}` __Is already disabled for sudo users__.\n"
             else:
-                typecmds.append(cmd)
+                flagcmds.append(cmd)
     count = 0
-    for cmd in typecmds:
+    for cmd in flagcmds:
         if sqllist.is_in_list("sudo_enabled_cmds", cmd):
             count += 1
             sqllist.rm_from_list("sudo_enabled_cmds", cmd)
-    result = f"__Successfully disabled __ `{count}` __ for LegendUserBot sudo.__\n"
+    result = f"__Successfully disabled __ `{count}` __ for LegendUserbot sudo.__\n"
     output = (
         result + "**Bot is reloading to apply the changes. Please wait for a minute**\n"
     )

@@ -63,7 +63,7 @@ async def currency(event):
             f"https://free.currconv.com/api/v7/convert?q={fromcurrency}_{tocurrency}&compact=ultra&apiKey={Config.CURRENCY_API}"
         )
         symbols = await AioHttp().get_raw(
-            "https://raw.githubusercontent.com/ITS-LEGENDBOT/RESOURCES/master/Resources/Data/currency.py"
+            "https://raw.githubusercontent.com/LEGEND-AI/LEGENDUSERBOT-Resources/master/Resources/Data/currency.py"
         )
 
         symbols = json.loads(re.sub(", *\n *}", "}", symbols.decode("utf-8")))
@@ -75,7 +75,7 @@ async def currency(event):
                 "__You have used wrong currency codes or Api can't fetch details or try by restarting bot it will work if everything is fine.__",
                 time=10,
             )
-        output = float(value) * float(result)
+        output = value * float(result)
         output = round(output, 4)
         await eor(
             event,
@@ -93,7 +93,7 @@ async def currency(event):
     command=("scan", menu_category),
     info={
         "header": "To scan the replied file for virus.",
-        "type": {"i": "to get output as image."},
+        "flag": {"i": "to get output as image."},
         "usage": ["{tr}scan", "{tr}scan -i"],
     },
 )
@@ -217,7 +217,7 @@ async def _(event):
         return await legendevent.edit(str(e))
     end = datetime.now()
     ms = (end - start).seconds
-    await eod(legendevent, "Created BarCode in {} seconds".format(ms))
+    await eod(legendevent, f"Created BarCode in {ms} seconds")
 
 
 @legend.legend_cmd(
@@ -340,7 +340,7 @@ async def spy(event):
     curnative = r["currency"]["native"]
     lang1 = r["languages"][0]["name"]
     time_zone = r["time_zone"]["name"]
-    emoji_type = r["emoji_type"]
+    emoji_flag = r["emoji_flag"]
     continent_code = r["continent_code"]
     native = r["languages"][0]["native"]
     current_time = r["time_zone"]["current_time"]
@@ -357,7 +357,7 @@ async def spy(event):
     except IndexError:
         lang2 = ""
 
-    string = f"✘ <b>Lookup For Ip : {ip}</b> {emoji_type}\n\n\
+    string = f"✘ <b>Lookup For Ip : {ip}</b> {emoji_flag}\n\n\
     <b>• City Name :</b>  <code>{city}</code>\n\
     <b>• Region Name :</b>  <code>{region}</code> [<code>{region_code}</code>]\n\
     <b>• Country Name :</b>  <code>{country}</code> [<code>{country_code}</code>]\n\
@@ -387,11 +387,10 @@ async def spy(event):
 async def _(event):
     "to get details of the relevant bank or branch."
     input_str = event.pattern_match.group(1)
-    url = "https://ifsc.razorpay.com/{}".format(input_str)
+    url = f"https://ifsc.razorpay.com/{input_str}"
     r = requests.get(url)
     if r.status_code != 200:
-        return await eor(event, "`{}`: {}".format(input_str, r.text))
-
+        return await eor(event, f"`{input_str}`: {r.text}")
     b = r.json()
     a = json.dumps(b, sort_keys=True, indent=4)
     # https://stackoverflow.com/a/9105132/4723940
@@ -421,16 +420,16 @@ async def _(event):
         return await event.edit(str(e))
     else:
         im = Image.new(mode="RGB", size=(1280, 720), color=usercolor)
-        im.save("legend.png", "PNG")
+        im.save("lol.png", "PNG")
         input_str = input_str.replace("#", "#COLOR_")
         await event.client.send_file(
             event.chat_id,
-            "legend.png",
+            "lol.png",
             force_document=False,
             caption=input_str,
             reply_to=message_id,
         )
-        os.remove("legend.png")
+        os.remove("lol.png")
         await event.delete()
 
 
@@ -459,15 +458,15 @@ async def _(event):
     if xkcd_id is None:
         xkcd_url = "https://xkcd.com/info.0.json"
     else:
-        xkcd_url = "https://xkcd.com/{}/info.0.json".format(xkcd_id)
+        xkcd_url = f"https://xkcd.com/{xkcd_id}/info.0.json"
     r = requests.get(xkcd_url)
     if not r.ok:
-        return await legendevent.edit("xkcd n.{} not found!".format(xkcd_id))
+        return await legendevent.edit(f"xkcd n.{xkcd_id} not found!")
     data = r.json()
     year = data.get("year")
     month = data["month"].zfill(2)
     day = data["day"].zfill(2)
-    xkcd_link = "https://xkcd.com/{}".format(data.get("num"))
+    xkcd_link = f'https://xkcd.com/{data.get("num")}'
     safe_title = data.get("safe_title")
     data.get("transcript")
     alt = data.get("alt")

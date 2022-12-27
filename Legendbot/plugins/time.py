@@ -14,8 +14,6 @@ from . import reply_id
 
 menu_category = "utils"
 
-# Userbot timezone
-
 
 FONT_FILE_TO_USE = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
 
@@ -49,7 +47,7 @@ async def get_tz(con):
     command=("time", menu_category),
     info={
         "header": "To get current time of a paticular country",
-        "note": "For country names check [this link](https://telegra.ph/country-names-10-24)",
+        "note": "For country names check [this link](https://graph.org/country-names-10-24)",
         "usage": "{tr}time <country name/code> <timezone number>",
         "examples": "{tr}time Brazil 2",
     },

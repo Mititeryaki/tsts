@@ -47,8 +47,8 @@ async def psu(event):
     softw += f"`Boot Time: {bt.day}/{bt.month}/{bt.year}  {bt.hour}:{bt.minute}:{bt.second}`\n"
     # CPU Cores
     cpuu = "**CPU Info**\n"
-    cpuu += "`Physical cores   : " + str(psutil.cpu_count(logical=False)) + "`\n"
-    cpuu += "`Total cores      : " + str(psutil.cpu_count(logical=True)) + "`\n"
+    cpuu += f"`Physical cores   : {str(psutil.cpu_count(logical=False))}" + "`\n"
+    cpuu += f"`Total cores      : {str(psutil.cpu_count(logical=True))}" + "`\n"
     # CPU frequencies
     cpufreq = psutil.cpu_freq()
     cpuu += f"`Max Frequency    : {cpufreq.max:.2f}Mhz`\n"
@@ -91,7 +91,7 @@ async def psu(event):
 )
 async def cpu(event):
     "shows cpu information"
-    cmd = "sweetie /proc/cpuinfo | grep 'model name'"
+    cmd = "lol /proc/cpuinfo | grep 'model name'"
     o = (await _legendutils.runcmd(cmd))[0]
     await eor(
         event, f"**[Legend's](tg://need_update_for_some_feature/) CPU Model:**\n{o}"
@@ -115,4 +115,4 @@ async def sysdetails(sysd):
                     --cpu_speed on --cpu_cores physical --kernel_shorthand off --stdout"
     a, b, c, d = await _legendutils.runcmd(neo)
     result = str(a) + str(b)
-    await eor(legendevent, "**Neofetch Result:** `" + result + "`")
+    await eor(legendevent, f"**Neofetch Result:** `{result}`")
