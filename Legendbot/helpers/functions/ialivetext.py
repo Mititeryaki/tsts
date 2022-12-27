@@ -1,5 +1,4 @@
 import math
-import os
 import time
 
 import heroku3
@@ -8,10 +7,8 @@ import requests
 from ...Config import Config
 from .utils import get_readable_time
 
-Heroku = heroku3.from_key(Config.API_KEY)
+Heroku = heroku3.from_key(Config.HEROKU_API_KEY)
 heroku_api = "https://api.heroku.com"
-
-ENV = bool(os.environ.get("ENV", False))
 
 # UniBorg Telegram UseRBot
 # Copyright (C) 2020 @UniBorg
@@ -57,7 +54,7 @@ async def legendalive(StartTime):
         user_id = Heroku.account().id
         headers = {
             "User-Agent": useragent,
-            "Authorization": f"Bearer {Config.API_KEY}",
+            "Authorization": f"Bearer {Config.HEROKU_API_KEY}",
             "Accept": "application/vnd.heroku+json; version=3.account-quotas",
         }
         path = f"/accounts/{user_id}/actions/get-quota"
@@ -83,15 +80,12 @@ async def legendalive(StartTime):
             math.floor(App[0]["quota_used"] * 100 / quota)
         AppHours = math.floor(AppQuotaUsed / 60)
         AppMinutes = math.floor(AppQuotaUsed % 60)
-        if ENV:
-            dyno = f"{AppHours}h {AppMinutes}m/{hours}h {minutes}m"
-        else:
-            dyno = "VPS"
+        dyno = f"{AppHours}h {AppMinutes}m/{hours}h {minutes}m"
     except Exception as e:
         dyno = e
-    return f"꧁ LegendBot Stats ꧂\
-                 \n\n༄ Database : {check_sgnirts}\
-                  \n༄ Sudo : {sudo}\
-                  \n༄ Uptime : {uptime}\
-                  \n༄ Dyno : {dyno}\
+    return f"🖤༄ Legenduserbot Stats ༄🖤\
+                 \n\nღ Database : {check_sgnirts}\
+                  \nღ Sudo : {sudo}\
+                  \nღ Uptime : {uptime}\
+                  \nღ Dyno : {dyno}\
                   "

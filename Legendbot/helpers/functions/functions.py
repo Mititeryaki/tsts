@@ -1,4 +1,4 @@
-import json
+import asyncio
 import os
 import zipfile
 from random import choice
@@ -7,25 +7,29 @@ from uuid import uuid4
 
 import requests
 from googletrans import Translator
+from PIL import Image, ImageOps
+from telethon import functions, types
 
 from ..utils.extdl import install_pip
-from ..utils.utils import runcmd
 
 try:
-    from imdb import IMDb
+    from imdb import Cinemagoer
 except ModuleNotFoundError:
-    install_pip("IMDbPY")
-    from imdb import IMDb
+    install_pip("cinemagoer")
+    from imdb import Cinemagoer
 
+from html_telegraph_poster import TelegraphPoster
 from PIL import Image, ImageColor, ImageDraw, ImageFont, ImageOps
 from telethon.errors.rpcerrorlist import YouBlockedUserError
 from telethon.tl.functions.contacts import UnblockRequest as unblock
 
 from ...Config import Config
+from ...core.logger import logging
 from ...sql_helper.globals import gvarstatus
 from ..resources.states import states
 
-imdb = IMDb()
+LOGS = logging.getLogger(__name__)
+imdb = Cinemagoer()
 
 mov_titles = [
     "long imdb title",
@@ -91,6 +95,27 @@ async def covidindia(state):
     return next((req[states.index(i)] for i in states if i == state), None)
 
 
+async def post_to_telegraph(
+    page_title,
+    html_format_content,
+    auth_name="LegendUserbot",
+    auth_url="https://t.me/LegendBot_XDS17",
+):
+    post_client = TelegraphPoster(use_api=True)
+    post_client.create_api_token(auth_name)
+    post_page = post_client.post(
+        title=page_title,
+        author=auth_name,
+        author_url=auth_url,
+        text=html_format_content,
+    )
+    return f"https://graph.org/{post_page['path']}"
+
+
+# --------------------------------------------------------------------------------------------------------------------#
+
+
+# ----------------------------------------------## Media ##-----------------------------------------------------------#
 async def age_verification(event, reply_to_id):
     ALLOW_NSFW = gvarstatus("ALLOW_NSFW") or "False"
     if ALLOW_NSFW.lower() == "true":
@@ -103,56 +128,56 @@ async def age_verification(event, reply_to_id):
     return True
 
 
-async def fileinfo(file):
-    x, y, z, s = await runcmd(f"mediainfo '{file}' --Output=JSON")
-    legend_json = json.loads(x)["media"]["track"]
-    dic = {
-        "path": file,
-        "size": int(legend_json[0]["FileSize"]),
-        "extension": legend_json[0]["FileExtension"],
-    }
+async def unsavegif(event, krishna):
     try:
-        if "VideoCount" or "AudioCount" or "ImageCount" in cat_json[0]:
-            dic["format"] = legend_json[0]["Format"]
-            dic["type"] = legend_json[1]["@type"]
-            if "ImageCount" not in legend_json[0]:
-                dic["duration"] = int(float(legend_json[0]["Duration"]))
-                dic["bitrate"] = int(int(legend_json[0]["OverallBitRate"]) / 1000)
-            if "VideoCount" or "ImageCount" in legend_json[0]:
-                dic["height"] = int(legend_json[1]["Height"])
-                dic["width"] = int(legend_json[1]["Width"])
-    except (IndexError, KeyError):
-        pass
-    return dic
+        await event.client(
+            functions.messages.SaveGifRequest(
+                id=types.InputDocument(
+                    id=krishna.media.document.id,
+                    access_hash=krishna.media.document.access_hash,
+                    file_reference=krishna.media.document.file_reference,
+                ),
+                unsave=True,
+            )
+        )
+    except Exception as e:
+        LOGS.info(str(e))
 
 
-async def animator(media, mainevent, textevent):
-    h = media.file.height
-    w = media.file.width
-    w, h = (-1, 512) if h > w else (512, -1)
-    if not os.path.isdir(Config.TEMP_DIR):
-        os.makedirs(Config.TEMP_DIR)
-    LegendOp = await mainevent.client.download_media(media, Config.TEMP_DIR)
-    await textevent.edit("__🎞Converting into Animated sticker..__")
-    await runcmd(
-        f"ffmpeg -ss 00:00:00 -to 00:00:02.900 -i {LegendOp} -vf scale={w}:{h} -c:v libvpx-vp9 -crf 30 -b:v 560k -maxrate 560k -bufsize 256k -an animate.webm"
-    )  # pain
-    os.remove(LegendOp)
-    sticker = "animate.webm"
-    return sticker
+# --------------------------------------------------------------------------------------------------------------------#
+
+
+# ----------------------------------------------## Bots ##------------------------------------------------------------#
+
+
+async def clippy(borg, msg, chat_id, reply_to_id):
+    chat = "@clippy"
+    async with borg.conversation(chat) as conv:
+        try:
+            msg = await conv.send_file(msg)
+        except YouBlockedUserError:
+            await borg(unblock("clippy"))
+            msg = await conv.send_file(msg)
+        pic = await conv.get_response()
+        await borg.send_read_acknowledge(conv.chat_id)
+        await borg.send_file(
+            chat_id,
+            pic,
+            reply_to=reply_to_id,
+        )
+    await borg.delete_messages(conv.chat_id, [msg.id, pic.id])
 
 
 async def hide_inlinebot(borg, bot_name, text, chat_id, reply_to_id, c_lick=0):
     sticcers = await borg.inline_query(bot_name, f"{text}.")
-    cat = await sticcers[c_lick].click("me", hide_via=True)
-    if cat:
-        await borg.send_file(int(chat_id), cat, reply_to=reply_to_id)
-        await cat.delete()
+    if lol := await sticcers[c_lick].click("me", hide_via=True):
+        await borg.send_file(int(chat_id), lol, reply_to=reply_to_id)
+        await lol.delete()
 
 
 async def make_inline(text, borg, chat_id, reply_to_id):
-    catinput = f"Inline buttons {text}"
-    results = await borg.inline_query(Config.BOT_USERNAME, catinput)
+    legendinput = f"Inline buttons {text}"
+    results = await borg.inline_query(Config.BOT_USERNAME, legendinput)
     await results[0].click(chat_id, reply_to=reply_to_id)
 
 
@@ -175,6 +200,48 @@ def sublists(input_list: list, width: int = 3):
     return [input_list[x : x + width] for x in range(0, len(input_list), width)]
 
 
+# split string into fixed length substrings
+def chunkstring(string, length):
+    return (string[0 + i : length + i] for i in range(0, len(string), length))
+
+
+# unziping file
+async def unzip(downloaded_file_name):
+    with zipfile.ZipFile(downloaded_file_name, "r") as zip_ref:
+        zip_ref.extractall("./temp")
+    downloaded_file_name = os.path.splitext(downloaded_file_name)[0]
+    return f"{downloaded_file_name}.gif"
+
+
+# https://github.com/ssut/py-googletrans/issues/234#issuecomment-722379788
+async def getTranslate(text, **kwargs):
+    translator = Translator()
+    result = None
+    for _ in range(10):
+        try:
+            result = translator.translate(text, **kwargs)
+        except Exception:
+            translator = Translator()
+            await asyncio.sleep(0.1)
+    return result
+
+
+def reddit_thumb_link(preview, thumb=None):
+    for i in preview:
+        if "width=216" in i:
+            thumb = i
+            break
+    if not thumb:
+        thumb = preview.pop()
+    return thumb.replace("\u0026", "&")
+
+
+# --------------------------------------------------------------------------------------------------------------------#
+
+
+# ----------------------------------------------## Image ##------------------------------------------------------------#
+
+
 def ellipse_create(filename, size, border):
     img = Image.open(filename)
     img = img.resize((int(1024 / size), int(1024 / size)))
@@ -189,8 +256,7 @@ def ellipse_create(filename, size, border):
 
 def ellipse_layout_create(filename, size, border):
     x, mask = ellipse_create(filename, size, border)
-    img = ImageOps.expand(mask)
-    return img
+    return ImageOps.expand(mask)
 
 
 def text_draw(font_name, font_size, img, text, hight, stroke_width=0, stroke_fill=None):
@@ -206,55 +272,6 @@ def text_draw(font_name, font_size, img, text, hight, stroke_width=0, stroke_fil
         stroke_width=stroke_width,
         stroke_fill=stroke_fill,
     )
-
-
-# unziping file
-async def unzip(downloaded_file_name):
-    with zipfile.ZipFile(downloaded_file_name, "r") as zip_ref:
-        zip_ref.extractall("./temp")
-    downloaded_file_name = os.path.splitext(downloaded_file_name)[0]
-    return f"{downloaded_file_name}.gif"
-
-
-async def clippy(borg, msg, chat_id, reply_to_id):
-    chat = "@clippy"
-    async with borg.conversation(chat) as conv:
-        try:
-            msg = await conv.send_file(msg)
-        except YouBlockedUserError:
-            await legend(unblock("clippy"))
-            msg = await conv.send_file(msg)
-        pic = await conv.get_response()
-        await borg.send_read_acknowledge(conv.chat_id)
-        await borg.send_file(
-            chat_id,
-            pic,
-            reply_to=reply_to_id,
-        )
-    await borg.delete_messages(conv.chat_id, [msg.id, pic.id])
-
-
-# https://github.com/ssut/py-googletrans/issues/234#issuecomment-722379788
-async def getTranslate(text, **kwargs):
-    translator = Translator()
-    result = None
-    for _ in range(10):
-        try:
-            result = translator.translate(text, **kwargs)
-        except Exception:
-            translator = Translator()
-            await sleep(0.1)
-    return result
-
-
-def reddit_thumb_link(preview, thumb=None):
-    for i in preview:
-        if "width=216" in i:
-            thumb = i
-            break
-    if not thumb:
-        thumb = preview.pop()
-    return thumb.replace("\u0026", "&")
 
 
 def higlighted_text(
@@ -276,7 +293,7 @@ def higlighted_text(
     direction=None,
     font_name=None,
     album_limit=None,
-):
+):  # sourcery skip: low-code-quality
     templait = Image.open(input_img)
     # resize image
     raw_width, raw_height = templait.size
@@ -302,8 +319,7 @@ def higlighted_text(
     for item in raw_text:
         input_text = "\n".join(wrap(item, int((40.0 / resized_width) * mask_size)))
         split_text = input_text.splitlines()
-        for final in split_text:
-            list_text.append(final)
+        list_text.extend(iter(split_text))
     texts = [list_text]
     if album and len(list_text) > lines:
         texts = [list_text[i : i + lines] for i in range(0, len(list_text), lines)]
@@ -383,13 +399,18 @@ def higlighted_text(
             )
             source_img = Image.alpha_composite(source_img, trans)
             output_text.append(list_text[i])
-        output_img = f"./temp/cat{pic_no}.jpg"
+        output_img = f"./temp/lol{pic_no}.jpg"
         output.append(output_img)
         source_img.save(output_img, "png")
         if album_limit and (album_limit - 1) == pic_no:
             break
     return output, output_text
 
+
+# ----------------------------------------------------------------------------------------------------------------------#
+
+
+# ----------------------------------------------## Sticker ##-----------------------------------------------------------#
 
 # for stickertxt
 async def waifutxt(text, chat_id, reply_to_id, bot):
@@ -428,7 +449,7 @@ async def waifutxt(text, chat_id, reply_to_id, bot):
         63,
     ]
     sticcers = await bot.inline_query("stickerizerbot", f"#{choice(animus)}{text}")
-    legend = await sticcers[0].click("me", hide_via=True)
-    if legend:
-        await bot.send_file(int(chat_id), legend, reply_to=reply_to_id)
-        await legend.delete()
+    lol = await sticcers[0].click("me", hide_via=True)
+    if lol:
+        await bot.send_file(int(chat_id), lol, reply_to=reply_to_id)
+        await lol.delete()

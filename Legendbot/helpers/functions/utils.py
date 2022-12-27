@@ -2,6 +2,7 @@ import re
 import time
 from datetime import datetime
 
+from emoji import get_emoji_regexp
 from telethon.tl.types import Channel, PollAnswer
 
 
@@ -46,9 +47,9 @@ async def get_readable_time(seconds: int) -> str:
 # gban
 
 
-async def admin_groups(lol):
+async def admin_groups(legend):
     legendgroups = []
-    async for dialog in lol.iter_dialogs():
+    async for dialog in legend.iter_dialogs():
         entity = dialog.entity
         if (
             isinstance(entity, Channel)
@@ -62,12 +63,12 @@ async def admin_groups(lol):
 # https://github.com/pokurt/LyndaRobot/blob/7556ca0efafd357008131fa88401a8bb8057006f/lynda/modules/helper_funcs/string_handling.py#L238
 
 
-async def extract_time(swt, time_val):
+async def extract_time(lol, time_val):
     if any(time_val.endswith(unit) for unit in ("s", "m", "h", "d", "w")):
         unit = time_val[-1]
         time_num = time_val[:-1]  # type: str
         if not time_num.isdigit():
-            await swt.edit("Invalid time amount specified.")
+            await lol.edit("Invalid time amount specified.")
             return None
         if unit == "s":
             bantime = int(time.time() + int(time_num) * 1)
@@ -81,12 +82,12 @@ async def extract_time(swt, time_val):
             bantime = int(time.time() + int(time_num) * 7 * 24 * 60 * 60)
         else:
             # how even...?
-            await swt.edit(
+            await lol.edit(
                 f"__Invalid time type specified. Expected s,  m , h , d or w but got:__ {time_val[-1]}"
             )
             return None
         return bantime
-    await swt.edit(
+    await lol.edit(
         f"__Invalid time type specified. Expected s,  m , h , d or w but got: __{time_val[-1]}"
     )
     return None

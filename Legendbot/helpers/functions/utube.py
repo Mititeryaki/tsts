@@ -24,25 +24,27 @@ YOUTUBE_REGEX = re.compile(
 PATH = "./Legendbot/cache/ytsearch.json"
 
 song_dl = "yt-dlp --force-ipv4 --write-thumbnail --add-metadata --embed-thumbnail -o './temp/%(title)s.%(ext)s' --extract-audio --audio-format mp3 --audio-quality {QUALITY} {video_link}"
+
 thumb_dl = "yt-dlp --force-ipv4 -o './temp/%(title)s.%(ext)s' --write-thumbnail --skip-download {video_link}"
-video_dl = "yt-dlp --force-ipv4 --write-thumbnail  --add-metadata --embed-thumbnail -o './temp/%(title)s.%(ext)s' -f '[filesize<20M]' {video_link}"
+video_dl = "yt-dlp --force-ipv4 --write-thumbnail --add-metadata --embed-thumbnail -o './temp/%(title)s.%(ext)s' -f 'best[height<=480]' {video_link}"
 name_dl = (
     "yt-dlp --force-ipv4 --get-filename -o './temp/%(title)s.%(ext)s' {video_link}"
 )
 
 
-async def yt_search(swt):
+async def yt_search(lol):
     try:
-        swt = urllib.parse.quote(swt)
+        lol = urllib.parse.quote(lol)
         html = urllib.request.urlopen(
-            f"https://www.youtube.com/results?search_query={swt}"
+            f"https://www.youtube.com/results?search_query={lol}"
         )
+
         user_data = re.findall(r"watch\?v=(\S{11})", html.read().decode())
         video_link = []
         k = 0
         for i in user_data:
             if user_data:
-                video_link.append("https://www.youtube.com/watch?v=" + user_data[k])
+                video_link.append(f"https://www.youtube.com/watch?v={user_data[k]}")
             k += 1
             if k > 3:
                 break
@@ -87,8 +89,8 @@ class YT_Search_X:
 ytsearch_data = YT_Search_X()
 
 """
-async def yt_data(swt):
-    params = {"format": "json", "url": swt}
+async def yt_data(lol):
+    params = {"format": "json", "url": lol}
     url = "https://www.youtube.com/oembed"  # https://stackoverflow.com/questions/29069444/returning-the-urls-as-a-list-from-a-youtube-search-query
     query_string = urllib.parse.urlencode(params)
     url = f"{url}?{query_string}"
@@ -96,7 +98,6 @@ async def yt_data(swt):
         response_text = response.read()
         data = ujson.loads(response_text.decode())
     return data
-
 """
 
 
@@ -118,7 +119,6 @@ async def get_ytthumb(videoid: str):
 
 
 def get_yt_video_id(url: str):
-    # https://regex101.com/r/c06cbV/1
     if match := YOUTUBE_REGEX.search(url):
         return match.group(1)
 
@@ -139,11 +139,12 @@ def get_choice_by_id(choice_id, media_type: str):
         disp_str = "best(video+audio)[webm/mp4]"
     else:
         disp_str = str(choice_id)
-        if media_type == "v":
-            # mp4 video quality + best compatible audio
-            choice_str = f"{disp_str}+(258/256/140/bestaudio[ext=m4a])/best"
-        else:  # Audio
-            choice_str = disp_str
+        choice_str = (
+            f"{disp_str}+(258/256/140/bestaudio[ext=m4a])/best"
+            if media_type == "v"
+            else disp_str
+        )
+
     return choice_str, disp_str
 
 
@@ -209,6 +210,7 @@ def yt_search_btns(
 
 @pool.run_in_thread
 def download_button(vid: str, body: bool = False):  # sourcery no-metrics
+    # sourcery skip: low-code-quality
     try:
         vid_data = yt_dlp.YoutubeDL({"no-playlist": True}).extract_info(
             BASE_YT_URL + vid, download=False
