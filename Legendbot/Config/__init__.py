@@ -1,1 +1,1 @@
-from .legend_config import Config
+from .config import Config
