@@ -47,9 +47,9 @@ async def get_readable_time(seconds: int) -> str:
 # gban
 
 
-async def admin_groups(legend):
+async def admin_groups(lol):
     legendgroups = []
-    async for dialog in legend.iter_dialogs():
+    async for dialog in lol.iter_dialogs():
         entity = dialog.entity
         if (
             isinstance(entity, Channel)
