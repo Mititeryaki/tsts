@@ -129,12 +129,6 @@ async def add_bot_to_logger_group(chat_id):
             LOGS.error(str(e))
 
 
-            
-            
-            
-            
-            
-            
 async def hekp():
     try:
         os.environ[
@@ -150,7 +144,6 @@ async def hekp():
         await legend(JoinChannelRequest("@LegendBot_AI"))
     except BaseException:
         pass
-  
 
 
 async def scammer(username):
@@ -164,9 +157,8 @@ async def scammer(username):
             except:
                 xx += 1
     print(f"OP {i-xx}")
-    
-    
-    
+
+
 async def load_plugins(folder, extfolder=None):
     """
     To load plugins from the mentioned folder
