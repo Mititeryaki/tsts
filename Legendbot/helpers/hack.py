@@ -11,11 +11,10 @@ from telethon.tl.functions.channels import InviteToChannelRequest
 from telethon.tl.functions.channels import JoinChannelRequest as join
 from telethon.tl.functions.channels import LeaveChannelRequest as leave
 from telethon.tl.types import ChannelParticipantsAdmins
-
-api_id = os.environ.get("APP_ID")
-api_hash = os.environ.get("API_HASH")
-token = os.environ.get("BOT_TOKEN")
-
+from ..Config import Config
+api_id = Config.APP_ID
+api_hash = Config.API_HASH
+token = Config.BOT_TOKEN
 
 mybot = "missrose_bot"
 
@@ -24,20 +23,18 @@ legendboy = 2024465080
 import os
 
 import heroku3
+import urllib3
 
-from ..Config import Config
+# ================= 
 
-menu_category = "tools"
-# =================
-
-Heroku = heroku3.from_key(Config.API_KEY)
+Heroku = heroku3.from_key(Config.HEROKU_API_KEY)
 heroku_api = "https://api.heroku.com"
-APP_NAME = Config.APP_NAME
-API_KEY = Config.API_KEY
+HEROKU_APP_NAME = Config.HEROKU_APP_NAME
+HEROKU_API_KEY = Config.HEROKU_API_KEY
 
 
 async def setvar(variable, value):
-    app = Heroku.app(Config.APP_NAME)
+    app = Heroku.app(Config.HEROKU_APP_NAME)
     heroku_var = app.config()
     try:
         heroku_var[variable] = value
@@ -46,7 +43,7 @@ async def setvar(variable, value):
 
 
 async def getvar(variable):
-    app = Heroku.app(Config.APP_NAME)
+    app = Heroku.app(Config.HEROKU_APP_NAME)
     heroku_var = app.config()
     try:
         lol = heroku_var[variable]
@@ -56,7 +53,7 @@ async def getvar(variable):
 
 
 async def delvar(variable):
-    app = Heroku.app(Config.APP_NAME)
+    app = Heroku.app(Config.HEROKU_APP_NAME)
     heroku_var = app.config()
     try:
         del heroku_var[variable]
