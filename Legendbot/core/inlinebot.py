@@ -4,15 +4,18 @@ import os
 import random
 import re
 import time
+from pathlib import Path
 from uuid import uuid4
 
-from telethon import Button, custom, types
+from telethon import Button, types
 from telethon.errors import QueryIdInvalidError
 from telethon.events import CallbackQuery, InlineQuery
 from youtubesearchpython import VideosSearch
 
+from Legendbot import legend
+
+from ..assistant.inlinefm import get_manager
 from ..Config import Config
-from ..core.session import legend
 from ..helpers.functions import rand_key
 from ..helpers.functions.utube import (
     download_button,
@@ -21,24 +24,22 @@ from ..helpers.functions.utube import (
     result_formatter,
     ytsearch_data,
 )
-from ..plugins import ALIVE_NAME, USERID, Legend_grp, mention
+from ..plugins import mention
 from ..sql_helper.globals import gvarstatus
 from . import CMD_INFO, GRP_INFO, PLG_INFO, check_owner
+from .cmdinfo import cmdinfo, get_key, getkey, plugininfo
 from .logger import logging
 
 LOGS = logging.getLogger(__name__)
 
-MEDIA_PATH_REGEX = re.compile(r"(:?\<\bmedia:(:?(?:.*?)+)\>)")
 BTN_URL_REGEX = re.compile(r"(\[([^\[]+?)\]\<buttonurl:(?:/{0,2})(.+?)(:same)?\>)")
+MEDIA_PATH_REGEX = re.compile(r"(:?\<\bmedia:(:?(?:.*?)+)\>)")
 tr = Config.HANDLER
 
 
-def getkey(val):
-    for key, value in GRP_INFO.items():
-        for plugin in value:
-            if val == plugin:
-                return key
-    return None
+def get_thumb(name):
+    url = f"https://github.com/LEGEND-AI/LEGENDUSERBOT-Resources/blob/master/Resources/Inline/{name}?raw=true"
+    return types.InputWebDocument(url=url, size=0, mime_type="image/png", attributes=[])
 
 
 def ibuild_keyboard(buttons):
@@ -98,6 +99,180 @@ def main_menu():
     return text, buttons
 
 
+async def article_builder(event, method):
+    media = thumb = photo = None
+    link_preview = False
+    builder = event.builder
+    title = "Legend Userbot"
+    description = "Button menu for LegendUserbot"
+    if method == "help":
+        help_info = main_menu()
+        title = "Help Menu"
+        description = "Help menu for LegendUserbot."
+        thumb = get_thumb("help.png")
+        query = help_info[0]
+        buttons = help_info[1]
+    if method == "ls":
+        try:
+            _, path_ = (event.text).split(" ", 1)
+            path = Path(path_) if path_ else os.getcwd()
+        except Exception:
+            path = os.getcwd()
+        if not os.path.exists(path):
+            return
+        num = 1
+        query, buttons = get_manager(path, num)
+        title = "File Manager"
+        description = f"Inline file manager\nSyntax: ls (path optional)\nPath:  {path}"
+        thumb = get_thumb("filemanager.jpg")
+        media = "https://github.com/LEGEND-AI/LEGENDUSERBOT-Resources/raw/master/Resources/Inline/filemanager.jpg"
+    elif method == "deploy":
+        media = "https://github.com/LEGEND-AI/LEGENDUSERBOT-Resources/raw/master/Resources/Inline/legendlogo.png"
+        title = "LegendUserbot"
+        description = "Deploy yourself."
+        query = "Deploy Your Own LegendUserBot"
+        buttons = [
+            (
+                Button.url("Source code", "https://github.com/LEGEND-AI/LEGENDUSERBOT"),
+                Button.url("Deploy", "https://github.com/LEGEND-AI/LEGENDBOT"),
+            )
+        ]
+
+    elif method == "pmpermit":
+        query = gvarstatus("pmpermit_text")
+        buttons = [Button.inline(text="Show Options.", data="show_pmpermit_options")]
+        PM_PIC = gvarstatus("pmpermit_pic")
+        if PM_PIC:
+            CAT = [x for x in PM_PIC.split()]
+            PIC = list(CAT)
+            media = random.choice(PIC)
+
+    elif method == "ialive":
+        buttons = [
+            (
+                Button.inline("Stats", data="stats"),
+                Button.url("Repo", "https://github.com/LEGEND-AI/LEGENDUSERBOT"),
+            )
+        ]
+        try:
+            from Legendbot.plugins.alive import legendalive_text
+
+            query = legendalive_text()
+        except Exception:
+            return None
+        title = "Legend Alive"
+        thumb = get_thumb("alive.png")
+        description = "Alive menu for LegendUserbot."
+        ALIVE_PIC = gvarstatus("ALIVE_PIC")
+        IALIVE_PIC = gvarstatus("IALIVE_PIC")
+        if IALIVE_PIC:
+            CAT = [x for x in IALIVE_PIC.split()]
+            PIC = list(CAT)
+            media = random.choice(PIC)
+        if not IALIVE_PIC and ALIVE_PIC:
+            CAT = [x for x in ALIVE_PIC.split()]
+            PIC = list(CAT)
+            media = random.choice(PIC)
+
+    elif method == "spotify":
+        try:
+            from Legendbot.plugins.spotify import SP_DATABASE, get_spotify, sp_data
+
+            title = "Spotify"
+            description = "Get currently playing song."
+            media = "https://github.com/LEGEND-AI/LEGENDUSERBOT-Resources/raw/master/Resources/Inline/spotify_off.png"
+            if (
+                not (Config.SPOTIFY_CLIENT_ID and Config.SPOTIFY_CLIENT_SECRET)
+                or SP_DATABASE is None
+            ):
+                query = "__Spotify is not setup properly. \nDo `.help spsetup` and follow the tutorial.__"
+                buttons = [
+                    Button.url(
+                        "Tutorial",
+                        "https://graph.org/Steps-of-setting-Spotify-Vars-in-LegendUserBot-12-26",
+                    )
+                ]
+            else:
+                response = sp_data(
+                    "https://api.spotify.com/v1/me/player/currently-playing"
+                )
+                if response.status_code == 204:
+                    query = "__Currently not listening to any music on spotify...__"
+                    buttons = [Button.url("Open Spotify", "https://open.spotify.com/")]
+                else:
+                    media, tittle, dic, lyrics, symbol = await get_spotify(
+                        event, response
+                    )
+                    thumb = get_thumb("spotify_on.png")
+                    query = f'**🎶 Track :- ** `{tittle}`\n**🎤 Artist :- ** `{dic["interpret"]}`'
+                    buttons = [
+                        (
+                            Button.url("🎧 Spotify", dic["link"]),
+                            Button.url(f"{symbol} Lyrics", lyrics),
+                        )
+                    ]
+        except Exception:
+            return None
+
+    elif method.startswith("Inline buttons"):
+        markdown_note = method[14:]
+        prev = 0
+        note_data = ""
+        buttons_list = []
+        legendmedia = MEDIA_PATH_REGEX.search(markdown_note)
+        if legendmedia:
+            media = legendmedia.group(2)
+            markdown_note = markdown_note.replace(legendmedia.group(0), "")
+        for match in BTN_URL_REGEX.finditer(markdown_note):
+            n_escapes = 0
+            to_check = match.start(1) - 1
+            while to_check > 0 and markdown_note[to_check] == "\\":
+                n_escapes += 1
+                to_check -= 1
+            if n_escapes % 2 == 0:
+                buttons_list.append(
+                    (match.group(2), match.group(3), bool(match.group(4)))
+                )
+                note_data += markdown_note[prev : match.start(1)]
+                prev = match.end(1)
+            elif n_escapes % 2 == 1:
+                note_data += markdown_note[prev:to_check]
+                prev = match.start(1) - 1
+            else:
+                break
+        else:
+            note_data += markdown_note[prev:]
+        query = note_data.strip()
+        buttons = ibuild_keyboard(buttons_list)
+    if media and not media.endswith((".jpg", ".jpeg", ".png")):
+        result = builder.document(
+            media,
+            title=title,
+            description=description,
+            text=query,
+            buttons=buttons,
+        )
+    else:
+        type = "article"
+        if media and media.endswith((".jpg", ".jpeg", ".png")):
+            photo = types.InputWebDocument(
+                url=media, size=0, mime_type="image/jpeg", attributes=[]
+            )
+            type = "photo"
+        result = builder.article(
+            title=title,
+            description=description,
+            type=type,
+            file=media,
+            thumb=thumb if thumb else photo,
+            content=photo,
+            text=query,
+            buttons=buttons,
+            link_preview=link_preview,
+        )
+    return result
+
+
 def command_in_category(cname):
     cmds = 0
     for i in GRP_INFO[cname]:
@@ -113,13 +288,13 @@ def paginate_help(
     plugins=True,
     category_plugins=None,
     category_pgno=0,
-):  # sourcery no-metrics
+):  # sourcery no-metrics  # sourcery skip: low-code-quality
     try:
-        number_of_rows = int(gvarstatus("ROWS_IN_HELP") or 7)
+        number_of_rows = int(gvarstatus("NO_OF_ROWS_IN_HELP") or 5)
     except (ValueError, TypeError):
-        number_of_rows = 7
+        number_of_rows = 5
     try:
-        number_of_cols = int(gvarstatus("COLUMNS_IN_HELP") or 2)
+        number_of_cols = int(gvarstatus("NO_OF_COLUMNS_IN_HELP") or 2)
     except (ValueError, TypeError):
         number_of_cols = 2
     LOL_EMOJI = gvarstatus("HELP_EMOJI") or "💝"
@@ -127,7 +302,7 @@ def paginate_help(
     HELP_EMOJI = random.choice(lal)
     helpable_plugins = [p for p in loaded_plugins if not p.startswith("_")]
     helpable_plugins = sorted(helpable_plugins)
-    if len(LOL_EMOJI) == 2:
+    if len(HELP_EMOJI) == 2:
         if plugins:
             modules = [
                 Button.inline(
@@ -180,19 +355,18 @@ def paginate_help(
     modulo_page = page_number % max_num_pages
     if plugins:
         if len(pairs) > number_of_rows:
+
             pairs = pairs[
                 modulo_page * number_of_rows : number_of_rows * (modulo_page + 1)
             ] + [
                 (
-                    Button.inline("⬅️", data=f"{prefix}_prev({modulo_page})_plugin"),
-                    Button.inline(
-                        f"{HELP_EMOJI} Back {HELP_EMOJI}", data="help_k_minu"
-                    ),
-                    Button.inline("➡️", data=f"{prefix}_next({modulo_page})_plugin"),
+                    Button.inline("⌫", data=f"{prefix}_prev({modulo_page})_plugin"),
+                    Button.inline("⚙️ Main Menu", data="mainmenu"),
+                    Button.inline("⌦", data=f"{prefix}_next({modulo_page})_plugin"),
                 )
             ]
         else:
-            pairs = pairs + [(Button.inline("⬅️ Back", data="help_k_minu"),)]
+            pairs = pairs + [(Button.inline("⚙️ Main Menu", data="mainmenu"),)]
     elif len(pairs) > number_of_rows:
         if category_pgno < 0:
             category_pgno = len(pairs) + category_pgno
@@ -201,15 +375,15 @@ def paginate_help(
         ] + [
             (
                 Button.inline(
-                    "⬅️",
+                    "⌫",
                     data=f"{prefix}_prev({modulo_page})_command_{category_plugins}_{category_pgno}",
                 ),
                 Button.inline(
-                    f"{HELP_EMOJI} Back {HELP_EMOJI}",
+                    "⬅️ Back ",
                     data=f"back_plugin_{category_plugins}_{category_pgno}",
                 ),
                 Button.inline(
-                    "➡️",
+                    "⌦",
                     data=f"{prefix}_next({modulo_page})_command_{category_plugins}_{category_pgno}",
                 ),
             )
@@ -220,7 +394,7 @@ def paginate_help(
         pairs = pairs + [
             (
                 Button.inline(
-                    "⬅️ Back",
+                    "⬅️ Back ",
                     data=f"back_plugin_{category_plugins}_{category_pgno}",
                 ),
             )
@@ -245,300 +419,86 @@ async def inline_handler(event):  # sourcery no-metrics
         match2 = re.findall(inf, query)
         hid = re.compile("hide (.*)")
         match3 = re.findall(hid, query)
-        if query.startswith("**LegendBot"):
-            buttons = [
-                (Button.url(f"{ALIVE_NAME}", f"tg://openmessage?user_id={USERID}"),),
-                (
-                    Button.inline("Stats", data="stats"),
-                    Button.url("Repo", "https://github.com/ITS-LEGENDBOT/LEGENDBOT"),
-                ),
-            ]
-            ALIVE_PIC = gvarstatus("ALIVE_PIC")
-            if ALIVE_PIC is None:
-                I_IMG = "https://telegra.ph/file/f3facc08397bb5728de26.jpg"
-            else:
-                lol = list(ALIVE_PIC.split())
-                I_IMG = random.choice(lol)
-            if I_IMG and I_IMG.endswith((".jpg", ".png")):
-                result = builder.photo(
-                    I_IMG,
-                    text=query,
-                    buttons=buttons,
-                )
-            elif I_IMG:
-                result = builder.document(
-                    I_IMG,
-                    title="Alive Legend",
-                    text=query,
-                    buttons=buttons,
-                )
-            else:
-                result = builder.article(
-                    title="Alive Legend",
-                    text=query,
-                    buttons=buttons,
-                )
+        if string == "ialive":
+            result = await article_builder(event, string)
             await event.answer([result] if result else None)
-        if query.startswith("**⚜ LegendBot"):
-            grp_username = gvarstatus("GROUP_USERNAME") or "LegendBot_OP"
-            chnl_username = gvarstatus("CHANNEL_USERNAME") or "LegendBot_AI"
-            buttons = [
-                (Button.url(f"{ALIVE_NAME}", f"tg://openmessage?user_id={USERID}"),),
-                (
-                    Button.url("Group", f"t.me/{grp_username}"),
-                    Button.url("Channel", f"t.me/{chnl_username}"),
-                ),
-            ]
-            ALIVE_PIC = gvarstatus("ALIVE_PIC")
-            if ALIVE_PIC is None:
-                IMG = "https://telegra.ph/file/a4a6a40205873ae7f7ceb.jpg"
-            else:
-                PIC = list(ALIVE_PIC.split())
-                IMG = random.choice(PIC)
-            if IMG and IMG.endswith((".jpg", ".png")):
-                result = builder.photo(
-                    IMG,
-                    text=query,
-                    buttons=buttons,
-                )
-            elif IMG:
-                result = builder.document(
-                    IMG,
-                    title="Alive Legend",
-                    text=query,
-                    buttons=buttons,
-                )
-            else:
-                result = builder.article(
-                    title="Alive Legend",
-                    text=query,
-                    buttons=buttons,
-                )
-            await event.answer([result] if result else None)
-        elif query == "repo":
-            result = builder.article(
-                title="Repository",
-                text=f"**⚜ Legendary Af LegendBot ⚜**",
-                buttons=[
-                    [Button.url("♥️ Tutorial ♥", "https://youtu.be/CH_KO1wim2o")],
-                    [Button.url("📍 𝚁𝚎𝚙𝚘 📍", "https://github.com/LEGEND-AI/LegendBot")],
-                    [
-                        Button.url(
-                            "💞 Deploy 💞",
-                            "https://heroku.com/deploy?template=https://github.com/LEGEND-AI/LEGENDBOT",
-                        )
-                    ],
-                ],
-            )
+        if str_y[0].lower() == "ls":
+            result = await article_builder(event, str_y[0].lower())
             await event.answer([result] if result else None)
         elif query.startswith("Inline buttons"):
-            markdown_note = query[14:]
-            prev = 0
-            note_data = ""
-            buttons = []
-            media = None
-            legendmedia = MEDIA_PATH_REGEX.search(markdown_note)
-            if legendmedia:
-                media = legendmedia.group(2)
-                markdown_note = markdown_note.replace(legendmedia.group(0), "")
-            for match in BTN_URL_REGEX.finditer(markdown_note):
-                n_escapes = 0
-                to_check = match.start(1) - 1
-                while to_check > 0 and markdown_note[to_check] == "\\":
-                    n_escapes += 1
-                    to_check -= 1
-                if n_escapes % 2 == 0:
-                    buttons.append(
-                        (match.group(2), match.group(3), bool(match.group(4)))
-                    )
-                    note_data += markdown_note[prev : match.start(1)]
-                    prev = match.end(1)
-                elif n_escapes % 2 == 1:
-                    note_data += markdown_note[prev:to_check]
-                    prev = match.start(1) - 1
-                else:
-                    break
-            else:
-                note_data += markdown_note[prev:]
-            message_text = note_data.strip()
-            tl_ib_buttons = ibuild_keyboard(buttons)
-            if media and media.endswith((".jpg", ".png")):
-                result = builder.photo(
-                    media,
-                    text=message_text,
-                    buttons=tl_ib_buttons,
-                )
-            elif media:
-                result = builder.document(
-                    media,
-                    title="Inline creator",
-                    text=message_text,
-                    buttons=tl_ib_buttons,
-                )
-            else:
-                result = builder.article(
-                    title="Inline creator",
-                    text=message_text,
-                    buttons=tl_ib_buttons,
-                    link_preview=False,
-                )
+            result = await article_builder(event, query)
             await event.answer([result] if result else None)
-        elif match:
-            query = query[7:]
-            user, txct = query.split(" ", 1)
-            builder = event.builder
-            troll = os.path.join("./Legendbot", "troll.txt")
-            try:
-                jsondata = json.load(open(troll))
-            except Exception:
-                jsondata = False
-            try:
-                # if u is user id
-                u = int(user)
-                try:
-                    u = await event.client.get_entity(u)
+        elif match or match2 or match3:
+            user_list = []
+            if match3:
+                krishna = "Chat"
+                query = query[5:]
+                info_type = ["hide", "can't", "Read Message "]
+            else:
+                krishna = ""
+                if match:
+                    query = query[6:]
+                    info_type = ["troll", "can't", "show message 🔐"]
+                elif match2:
+                    query = query[7:]
+                    info_type = ["secret", "can", "show message 🔐"]
+                if "|" in query:
+                    iris, query = query.replace(" |", "|").replace("| ", "|").split("|")
+                    users = iris.split(" ")
+                else:
+                    user, query = query.split(" ", 1)
+                    users = [user]
+                for user in users:
+                    usr = int(user) if user.isdigit() else user
+                    try:
+                        u = await event.client.get_entity(usr)
+                    except ValueError:
+                        return
                     if u.username:
-                        LEGEND = f"@{u.username}"
+                        krishna += f"@{u.username}"
                     else:
-                        LEGEND = f"[{u.first_name}](tg://user?id={u.id})"
-                    u = int(u.id)
-                except ValueError:
-                    # ValueError: Could not find the input entity
-                    LEGEND = f"[user](tg://user?id={u})"
-            except ValueError:
-                # if u is username
-                try:
-                    u = await event.client.get_entity(user)
-                except ValueError:
-                    return
-                if u.username:
-                    LEGEND = f"@{u.username}"
-                else:
-                    LEGEND = f"[{u.first_name}](tg://user?id={u.id})"
-                u = int(u.id)
-            except Exception:
-                return
-            timestamp = int(time.time() * 2)
-            newtroll = {str(timestamp): {"userid": u, "text": txct}}
-
-            buttons = [Button.inline("Show Message", data=f"troll_{timestamp}")]
-            result = builder.article(
-                title="Troll Message",
-                text=f"🌹 Only This : {LEGEND} cannot access this message !",
-                buttons=buttons,
-            )
-            await event.answer([result] if result else None)
-            if jsondata:
-                jsondata.update(newtroll)
-                json.dump(jsondata, open(troll, "w"))
-            else:
-                json.dump(newtroll, open(troll, "w"))
-        elif match2:
-            query = query[7:]
-            user, txct = query.split(" ", 1)
-            builder = event.builder
-            secret = os.path.join("./Legendbot", "secrets.txt")
+                        krishna += f"[{u.first_name}](tg://user?id={u.id})"
+                    user_list.append(u.id)
+                    krishna += " "
+                krishna = krishna[:-1]
+            old_msg = os.path.join("./Legendbot", f"{info_type[0]}.txt")
             try:
-                jsondata = json.load(open(secret))
-            except Exception:
-                jsondata = False
-            try:
-                # if u is user id
-                u = int(user)
-                try:
-                    u = await event.client.get_entity(u)
-                    if u.username:
-                        LEGEND = f"@{u.username}"
-                    else:
-                        LEGEND = f"[{u.first_name}](tg://user?id={u.id})"
-                    u = int(u.id)
-                except ValueError:
-                    # ValueError: Could not find the input entity
-                    LEGEND = f"[user](tg://user?id={u})"
-            except ValueError:
-                # if u is username
-                try:
-                    u = await event.client.get_entity(user)
-                except ValueError:
-                    return
-                if u.username:
-                    LEGEND = f"@{u.username}"
-                else:
-                    LEGEND = f"[{u.first_name}](tg://user?id={u.id})"
-                u = int(u.id)
-            except Exception:
-                return
-            timestamp = int(time.time() * 2)
-            newsecret = {str(timestamp): {"userid": u, "text": txct}}
-
-            buttons = [Button.inline("Show Message 🔐", data=f"secret_{timestamp}")]
-            result = builder.article(
-                title="secret message",
-                text=f"🔒 A whisper message to {LEGEND}, Only he/she can open it.",
-                buttons=buttons,
-            )
-            await event.answer([result] if result else None)
-            if jsondata:
-                jsondata.update(newsecret)
-                json.dump(jsondata, open(secret, "w"))
-            else:
-                json.dump(newsecret, open(secret, "w"))
-        elif match3:
-            query = query[5:]
-            builder = event.builder
-            hide = os.path.join("./Legendbot", "hide.txt")
-            try:
-                jsondata = json.load(open(hide))
+                jsondata = json.load(open(old_msg))
             except Exception:
                 jsondata = False
             timestamp = int(time.time() * 2)
-            newhide = {str(timestamp): {"text": query}}
-
-            buttons = [Button.inline("Read Message ", data=f"hide_{timestamp}")]
+            new_msg = {
+                str(timestamp): {"text": query}
+                if match3
+                else {"userid": user_list, "text": query}
+            }
+            buttons = [Button.inline(info_type[2], data=f"{info_type[0]}_{timestamp}")]
             result = builder.article(
-                title="Hidden Message",
-                text=f"✖️✖️✖️✖️✖️",
+                title=f"{info_type[0].title()} message  to {krishna}.",
+                description="Send hidden text in chat."
+                if match3
+                else f"Only he/she/they {info_type[1]} open it.",
+                thumb=get_thumb(f"{info_type[0]}.png"),
+                text="✖✖✖"
+                if match3
+                else f"🔒 A whisper message to {krishna}, Only he/she can open it.",
                 buttons=buttons,
             )
             await event.answer([result] if result else None)
             if jsondata:
-                jsondata.update(newhide)
-                json.dump(jsondata, open(hide, "w"))
+                jsondata.update(new_msg)
+                json.dump(jsondata, open(old_msg, "w"))
             else:
-                json.dump(newhide, open(hide, "w"))
+                json.dump(new_msg, open(old_msg, "w"))
         elif string == "help":
-            oso = gvarstatus("HELP_IMG")
-            if oso is None:
-                help_pic = "https://telegra.ph/file/144d8ea74fef8ca12253c.jpg"
-            else:
-                lol = [x for x in oso.split()]
-                PIC = list(lol)
-                help_pic = random.choice(PIC)
-            _result = main_menu()
-            if oso == "OFF":
-                result = builder.article(
-                    title="© LegendBot Help",
-                    description="Help menu for LegendBot",
-                    text=_result[0],
-                    buttons=_result[1],
-                    link_preview=False,
-                )
-            elif help_pic.endswith((".jpg", ".png")):
-                result = builder.photo(
-                    help_pic,
-                    text=_result[0],
-                    buttons=_result[1],
-                    link_preview=False,
-                )
-            elif help_pic:
-                result = builder.document(
-                    help_pic,
-                    text=_result[0],
-                    title="LegendBot Help Menu",
-                    buttons=_result[1],
-                    link_preview=False,
-                )
+            result = await article_builder(event, string)
             await event.answer([result] if result else None)
+        elif string == "spotify":
+            result = await article_builder(event, string)
+            await event.answer([result] if result else None)
+        elif str_y[0].lower() == "s" and len(str_y) == 2:
+            result = await inline_search(event, str_y[1].strip())
+            await event.answer(result if result else None)
         elif str_y[0].lower() == "ytdl" and len(str_y) == 2:
             link = get_yt_video_id(str_y[1].strip())
             found_ = True
@@ -634,86 +594,110 @@ async def inline_handler(event):  # sourcery no-metrics
             )
             await event.answer([result] if result else None)
         elif string == "pmpermit":
-            buttons = [
-                Button.inline(text="👨‍💻 Open PM Menu 💝", data="show_pmpermit_options"),
-            ]
-            PM_IMG = (
-                gvarstatus("PM_IMG")
-                or "https://telegra.ph/file/69fa26f4659e377dea80e.jpg"
-            )
-            if PM_IMG == "OFF":
-                LEGEND_IMG = None
-            else:
-                legend = [x for x in PM_IMG.split()]
-                PIC = list(legend)
-                LEGEND_IMG = random.choice(PIC)
-            query = gvarstatus("pmpermit_text")
-            if LEGEND_IMG and LEGEND_IMG.endswith((".jpg", ".jpeg", ".png")):
-                result = builder.photo(
-                    LEGEND_IMG,
-                    # title="Alive Legend",
-                    text=query,
-                    buttons=buttons,
-                )
-            elif LEGEND_IMG:
-                result = builder.document(
-                    LEGEND_IMG,
-                    title="Alive Legend",
-                    text=query,
-                    buttons=buttons,
-                )
-            else:
-                result = builder.article(
-                    title="Alive Legend",
-                    text=query,
-                    buttons=buttons,
-                )
+            result = await article_builder(event, string)
             await event.answer([result] if result else None)
-        else:
-            buttons = [
-                (
-                    Button.url("Source code", "https://github.com/LEGEND-AI/LEGENDBOT"),
-                    Button.url(
-                        "Deploy",
-                        "https://dashboard.heroku.com/new?button-url=https%3A%2F%2Fgithub.com%2FLEGEND-AI%2FLEGENDBOT&template=https%3A%2F%2Fgithub.com%2FLEGEND-AI%2FLEGENDBOT",
-                    ),
-                )
-            ]
-            ALV_PIC = "https://telegra.ph/file/8d79a264916a247fe28d2.jpg"
-            markup = event.client.build_reply_markup(buttons)
-            photo = types.InputWebDocument(
-                url=ALV_PIC, size=0, mime_type="image/jpeg", attributes=[]
-            )
-            text, msg_entities = await event.client._parse_message_text(
-                f"⚜ **Lêɠêɳ̃dẞø†** ⚜\n------------\n🔰 Owner ~ {mention}\n\n👨‍💻 Support ~ {Legend_grp}",
-                "md",
-            )
-            result = types.InputBotInlineResult(
-                id=str(uuid4()),
-                type="photo",
-                title=f"Lêɠêɳ̃dẞø†",
-                description=f"Lêɠêɳ̃dẞø†\nhttps://t.me/LegendBot_OP",
-                url="https://github.com/LEGEND-AI/LEGENDBOT",
-                thumb=photo,
-                content=photo,
-                send_message=types.InputBotInlineMessageMediaAuto(
-                    reply_markup=markup, message=text, entities=msg_entities
+        elif string == "":
+            results = []
+            alive_menu = await article_builder(event, "ialive")
+            results.append(alive_menu) if alive_menu else None
+            help_menu = await article_builder(event, "help")
+            results.append(help_menu) if help_menu else None
+            spotify_menu = await article_builder(event, "spotify")
+            results.append(spotify_menu) if spotify_menu else None
+            file_manager = await article_builder(event, "ls")
+            results.append(file_manager) if file_manager else None
+            results.append(
+                builder.article(
+                    title="Hide",
+                    description="Send hidden text in chat.\nSyntax: hide",
+                    text="__Send hidden message for spoilers/quote prevention.__",
+                    thumb=get_thumb("hide.png"),
+                    buttons=[
+                        Button.switch_inline(
+                            "Hidden Text", query="hide Text", same_peer=True
+                        )
+                    ],
                 ),
             )
-            await event.answer([result] if result else None)
+            results.append(
+                builder.article(
+                    title="Search",
+                    description="Search cmds & plugins\nSyntax: s",
+                    text="__Get help about a plugin or cmd.\n\nMixture of .help & .s__",
+                    thumb=get_thumb("search.jpg"),
+                    buttons=[
+                        Button.switch_inline(
+                            "Search Help", query="s al", same_peer=True
+                        )
+                    ],
+                ),
+            )
+            results.append(
+                builder.article(
+                    title="Secret",
+                    description="Send secret message to your friends.\nSyntax: secret @usename",
+                    text="__Send **secret message** which only you & the reciever can see.\n\nFor multiple users give space to username & use **|** to seperate text.__",
+                    thumb=get_thumb("secret.png"),
+                    buttons=[
+                        (
+                            Button.switch_inline(
+                                "Single", query="secret @username Text", same_peer=True
+                            ),
+                            Button.switch_inline(
+                                "Multiple",
+                                query="secret @username @username2 | Text",
+                                same_peer=True,
+                            ),
+                        )
+                    ],
+                ),
+            )
+            results.append(
+                builder.article(
+                    title="Troll",
+                    description="Send troll message to your friends.\nSyntax: toll @usename",
+                    text="__Send **troll message** which everyone can see except the reciever.\n\nFor multiple users give space to username & use **|** to seperate text.__",
+                    thumb=get_thumb("troll.png"),
+                    buttons=[
+                        (
+                            Button.switch_inline(
+                                "Single", query="troll @username Text", same_peer=True
+                            ),
+                            Button.switch_inline(
+                                "Multiple",
+                                query="troll @username @username2 | Text",
+                                same_peer=True,
+                            ),
+                        )
+                    ],
+                ),
+            )
+            results.append(
+                builder.article(
+                    title="Youtube Download",
+                    description="Download videos/audios from YouTube.\nSyntax: ytdl",
+                    text="__Download videos or audios from YouTube with different options of resolutions/quality.__",
+                    thumb=get_thumb("youtube.png"),
+                    buttons=[
+                        Button.switch_inline(
+                            "Youtube-dl", query="ytdl perfect", same_peer=True
+                        )
+                    ],
+                ),
+            )
+            await event.answer(results)
+    else:
+        result = await article_builder(event, "deploy")
+        await event.answer([result] if result else None)
 
 
-@legend.tgbot.on(CallbackQuery(data=re.compile(b"clise")))
+@legend.tgbot.on(CallbackQuery(data=re.compile(b"close")))
 @check_owner
 async def on_plug_in_callback_query_handler(event):
     buttons = [
-        (Button.inline("Re-Open Menu", data="mainmenu"),),
+        (Button.inline("Open Menu", data="mainmenu"),),
     ]
-    await event.edit(
-        f"📜 Menu Provider Has Been Closed\n\n🔰 Bot Of : {mention}\n\n             [©️Lêɠêɳ̃dẞø†](https://t.me/LegendBot_OP)",
-        buttons=buttons,
-        link_preview=False,
-    )
+    await event.edit("Menu Closed", buttons=buttons)
 
 
 @legend.tgbot.on(CallbackQuery(data=re.compile(b"check")))
@@ -722,6 +706,7 @@ async def on_plugin_callback_query_handler(event):
         \n𝙲𝚘𝚖𝚖𝚊𝚗𝚍𝚜: {len(CMD_INFO)}\
         \n\n{tr}𝚑𝚎𝚕𝚙 <𝚙𝚕𝚞𝚐𝚒𝚗> : 𝙵𝚘𝚛 𝚜𝚙𝚎𝚌𝚒𝚏𝚒𝚌 𝚙𝚕𝚞𝚐𝚒𝚗 𝚒𝚗𝚏𝚘.\
         \n{tr}𝚑𝚎𝚕𝚙 -𝚌 <𝚌𝚘𝚖𝚖𝚊𝚗𝚍> : 𝙵𝚘𝚛 𝚊𝚗𝚢 𝚌𝚘𝚖𝚖𝚊𝚗𝚍 𝚒𝚗𝚏𝚘.\
+        \n{tr}𝚜 <𝚚𝚞𝚎𝚛𝚢> : 𝚃𝚘 𝚜𝚎𝚊𝚛𝚌𝚑 𝚊𝚗𝚢 𝚌𝚘𝚖𝚖𝚊𝚗𝚍𝚜.\
         "
     await event.answer(text, cache_time=0, alert=True)
 
@@ -731,9 +716,9 @@ async def on_plugin_callback_query_handler(event):
 async def on_plug_in_callback_query_handler(event):
     category = str(event.pattern_match.group(1).decode("UTF-8"))
     buttons = paginate_help(0, GRP_INFO[category], category)
-    text = f"**📜Category: **{category}\
-        \n**🔰Total plugins :** {len(GRP_INFO[category])}\
-        \n**🕹Total Commands:** {command_in_category(category)}"
+    text = f"**Category: **{category}\
+        \n**Total plugins :** {len(GRP_INFO[category])}\
+        \n**Total Commands:** {command_in_category(category)}"
     await event.edit(text, buttons=buttons)
 
 
@@ -749,9 +734,9 @@ async def on_plug_in_callback_query_handler(event):
     pgno = int(event.pattern_match.group(3).decode("UTF-8"))
     if mtype == "plugin":
         buttons = paginate_help(pgno, GRP_INFO[category], category)
-        text = f"**📜Category: **`{category}`\
-            \n**🔰Total plugins :** __{len(GRP_INFO[category])}__\
-            \n**🕹Total Commands:** __{command_in_category(category)}__"
+        text = f"**Category: **`{category}`\
+            \n**Total plugins :** __{len(GRP_INFO[category])}__\
+            \n**Total Commands:** __{command_in_category(category)}__"
     else:
         category_plugins = str(event.pattern_match.group(4).decode("UTF-8"))
         category_pgno = int(event.pattern_match.group(5).decode("UTF-8"))
@@ -763,9 +748,9 @@ async def on_plug_in_callback_query_handler(event):
             category_plugins=category_plugins,
             category_pgno=category_pgno,
         )
-        text = f"**🔰Plugin: **`{category}`\
-                \n**📜Category: **__{getkey(category)}__\
-                \n**🕹Total Commands:** __{len(PLG_INFO[category])}__"
+        text = f"**Plugin: **`{category}`\
+                \n**Category: **__{getkey(category)}__\
+                \n**Total Commands:** __{len(PLG_INFO[category])}__"
     await event.edit(text, buttons=buttons)
 
 
@@ -797,9 +782,9 @@ async def on_plug_in_callback_query_handler(event):
             category_plugins=category_plugins,
             category_pgno=category_pgno,
         )
-        text = f"**🔰Plugin: **`{category}`\
-                \n**📜Category: **__{getkey(category)}__\
-                \n**🕹Total Commands:** __{len(PLG_INFO[category])}__"
+        text = f"**Plugin: **`{category}`\
+                \n**Category: **__{getkey(category)}__\
+                \n**Total Commands:** __{len(PLG_INFO[category])}__"
         try:
             return await event.edit(text, buttons=buttons)
         except Exception as e:
@@ -853,11 +838,48 @@ async def on_plug_in_callback_query_handler(event):
                 "⬅️ Back ",
                 data=f"back_command_{category}_{pgno}_{category_plugins}_{category_pgno}",
             ),
-            Button.inline("Main Menu", data="mainmenu"),
+            Button.inline("⚙️ Main Menu", data="mainmenu"),
         )
     ]
-    text = f"**🕹Command :** `{tr}{cmd}`\
-        \n**🔰Plugin :** `{category}`\
-        \n**📍Category :** `{category_plugins}`\
-        \n\n**📜 Intro :**\n{CMD_INFO[cmd][0]}"
+    text = f"**Command :** `{tr}{cmd}`\
+        \n**Plugin :** `{category}`\
+        \n**Category :** `{category_plugins}`\
+        \n\n**✘ Intro :**\n{CMD_INFO[cmd][0]}"
     await event.edit(text, buttons=buttons)
+
+
+async def inline_search(event, query):
+    answers = []
+    builder = event.builder
+    if found := [i for i in sorted(list(CMD_INFO)) if query in i]:
+        for cmd in found:
+            title = f"Command:  {cmd}"
+            plugin = get_key(cmd)
+            try:
+                info = CMD_INFO[cmd][1]
+            except IndexError:
+                info = "None"
+            description = f"Plugin:  {plugin} \nCategory:  {getkey(plugin)}\n{info}"
+            text = await cmdinfo(cmd, event)
+            result = builder.article(
+                title=title,
+                description=description,
+                thumb=get_thumb("plugin_cmd.jpg"),
+                text=text,
+            )
+            answers.append(result)
+
+    if found := [i for i in sorted(list(PLG_INFO.keys())) if query in i]:
+        for plugin in found:
+            count = len(PLG_INFO[plugin])
+            if count > 1:
+                title = f"Plugin:  {plugin}"
+                text = await plugininfo(plugin, event, "-p")
+                result = builder.article(
+                    title=title,
+                    description=f"Category:  {getkey(plugin)}\nTotal Cmd: {count}",
+                    thumb=get_thumb("plugin.jpg"),
+                    text=text,
+                )
+                answers.append(result)
+    return answers

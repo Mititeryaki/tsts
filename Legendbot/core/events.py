@@ -1,3 +1,4 @@
+import pathlib
 import typing
 
 from telethon import events, hints, types
@@ -35,12 +36,12 @@ class NewMessage(events.NewMessage):
             is_admin = False
             creator = hasattr(event.chat, "creator")
             admin_rights = hasattr(event.chat, "admin_rights")
-            type = None
+            flag = None
             if not creator and not admin_rights:
                 try:
                     event.chat = event._client.loop.create_task(event.get_chat())
                 except AttributeError:
-                    type = "Null"
+                    flag = "Null"
 
             if self.incoming:
                 try:
@@ -54,7 +55,7 @@ class NewMessage(events.NewMessage):
                     is_creator = True
                 if isinstance(participant, types.ChannelParticipantAdmin):
                     is_admin = True
-            elif type:
+            elif flag:
                 is_admin = True
                 is_creator = False
             else:
@@ -89,6 +90,7 @@ class MessageEdited(NewMessage):
 
 
 async def safe_check_text(msg):  # sourcery no-metrics
+    # sourcery skip: low-code-quality
     if not msg:
         return False
     msg = str(msg)
@@ -101,7 +103,7 @@ async def safe_check_text(msg):  # sourcery no-metrics
             or (phone[-10:] in msg)
             or (Config.API_HASH in msg)
             or (Config.BOT_TOKEN in msg)
-            or (Config.API_KEY and Config.API_KEY in msg)
+            or (Config.HEROKU_API_KEY and Config.HEROKU_API_KEY in msg)
             or (Config.OPEN_WEATHER_MAP_APPID and Config.OPEN_WEATHER_MAP_APPID in msg)
             or (Config.IBM_WATSON_CRED_URL and Config.IBM_WATSON_CRED_URL in msg)
             or (Config.OCR_SPACE_API_KEY and Config.OCR_SPACE_API_KEY in msg)
@@ -115,7 +117,8 @@ async def safe_check_text(msg):  # sourcery no-metrics
             or (Config.LASTFM_SECRET and Config.LASTFM_SECRET in msg)
             or (Config.LASTFM_PASSWORD_PLAIN and Config.LASTFM_PASSWORD_PLAIN in msg)
             or (Config.SPAMWATCH_API and Config.SPAMWATCH_API in msg)
-            or (Config.RANDOM_STUFF_API_KEY and Config.RANDOM_STUFF_API_KEY in msg)
+            or (Config.SPOTIFY_CLIENT_ID and Config.SPOTIFY_CLIENT_ID in msg)
+            or (Config.SPOTIFY_CLIENT_SECRET and Config.SPOTIFY_CLIENT_SECRET in msg)
             or (Config.GITHUB_ACCESS_TOKEN and Config.GITHUB_ACCESS_TOKEN in msg)
             or (Config.DEEP_AI and Config.DEEP_AI in msg)
             or (
@@ -215,7 +218,7 @@ async def send_message(
                 comment_to=comment_to,
             )
         msglink = await client.get_msg_link(response)
-        msg = f"**Sorry, This Is Sensitive Data I Cant Send It To Public.& Reported to Admin Of LegendBot Group [admin](https://t.me/LegendBot_OP). & Dont Try To Send Any Information Without Knowing Anything.** ▶️ [Logger group]({msglink})"
+        msg = f"__Sorry I can't send this message in public chats it may have some sensitive data So check in __[Bot log group]({msglink})."
         return await client.sendmessage(
             entity=chatid,
             message=msg,
@@ -335,8 +338,7 @@ async def send_file(
     msg = caption
     safecheck = await safe_check_text(msg)
     try:
-        with open(file) as f:
-            filemsg = f.read()
+        filemsg = pathlib.Path(file).read_text()
     except Exception:
         filemsg = ""
     safe_file_check = await safe_check_text(filemsg)
@@ -368,7 +370,7 @@ async def send_file(
                 **kwargs,
             )
         msglink = await client.get_msg_link(response)
-        msg = f"**Sorry, This Is Sensitive Data I Cant Send It To Public.& Reported to Admin Of LegendBot Group [admin](https://t.me/LegendBot_OP). & Dont Try To Send Any Information Without Knowing Anything.** ▶️ [Logger group]({msglink})"
+        msg = f"__Sorry I can't send this message in public chats it may have some sensitive data So check in __[Bot log group]({msglink})."
         return await client.sendmessage(
             entity=chatid,
             message=msg,
@@ -467,7 +469,7 @@ async def edit_message(
                 schedule=schedule,
             )
         msglink = await client.get_msg_link(response)
-        msg = f"**Sorry, This Is Sensitive Data I Cant Send It To Public.& Reported to Admin Of LegendBot Group [admin](https://t.me/LegendBot_OP). & Dont Try To Send Any Information Without Knowing Anything.** ▶️ [Logger group]({msglink})"
+        msg = f"__Sorry I can't send this message in public chats it may have some sensitive data So check in __[Bot log group]({msglink})."
         return await client.editmessage(
             entity=chatid,
             message=message,

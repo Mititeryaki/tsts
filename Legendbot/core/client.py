@@ -103,6 +103,7 @@ class LegendClient(TelegramClient):
 
         def decorator(func):  # sourcery no-metrics
             async def wrapper(check):  # sourcery no-metrics
+                # sourcery skip: low-code-quality
                 if groups_only and not check.is_group:
                     return await eod(check, "`I don't think this is a group.`", 10)
                 if private_only and not check.is_private:
@@ -173,9 +174,11 @@ class LegendClient(TelegramClient):
                         pastelink = await paste_message(
                             ftext, pastetype="s", markdown=False
                         )
-                        text = "**LegendBot Error report**\n\n"
                         link = "[here](https://t.me/LegendBot_OP)"
-                        text += "If you wanna you can report it"
+                        text = (
+                            "**LegendUserbot Error report**\n\n"
+                            + "If you wanna you can report it"
+                        )
                         text += f"- just forward this message {link}.\n"
                         text += (
                             "Nothing is logged except the fact of error and date\n\n"
@@ -292,9 +295,11 @@ class LegendClient(TelegramClient):
                         pastelink = await paste_message(
                             ftext, pastetype="s", markdown=False
                         )
-                        text = "**LegendBot Error report**\n\n"
                         link = "[here](https://t.me/LegendBot_OP)"
-                        text += "If U Want To Report This Error Then"
+                        text = (
+                            "**LegendUserbot Error report**\n\n"
+                            + "If you wanna you can report it"
+                        )
                         text += f"- just forward this message {link}.\n"
                         text += (
                             "Nothing is logged except the fact of error and date\n\n"
