@@ -1,3 +1,4 @@
+import contextlib
 import html
 import os
 import re
@@ -7,32 +8,33 @@ from urllib.parse import quote_plus
 
 import aiohttp
 import bs4
-import jikanpy
 import requests
 from jikanpy import Jikan
 from jikanpy.exceptions import APIException
 from pySmartDL import SmartDL
 from telegraph import exceptions, upload_file
 
-from Legendbot import legend
+from Legendbot import Convert, legend
 
 from ..core.managers import eod, eor
-from ..helpers import media_type, time_formatter
+from ..helpers import media_type, readable_time, reply_id, time_formatter
 from ..helpers.functions import (
     airing_query,
     anilist_user,
+    anime_json_synomsis,
     callAPI,
+    character_query,
     formatJSON,
     get_anime_manga,
     get_anime_schedule,
     get_filler_episodes,
     getBannerLink,
     memory_file,
+    post_to_telegraph,
     search_in_animefiller,
+    searchanilist,
     weekdays,
 )
-from ..helpers.progress import readable_time
-from ..helpers.utils import _legendtools, reply_id
 
 jikan = Jikan()
 
@@ -58,7 +60,6 @@ menu_category = "extra"
     },
 )
 async def anime_quote(event):
-    "Get random Anime quotes."
     data = requests.get("https://animechan.vercel.app/api/random").json()
     anime = data["anime"]
     character = data["character"]
@@ -123,16 +124,17 @@ async def user(event):
     search_query = event.pattern_match.group(1)
     replyto = await reply_id(event)
     reply = await event.get_reply_message()
-    if not search_query and reply and reply.text:
-        search_query = reply.text
-    elif not search_query:
-        return await eod(event, "__Whom should i search.__")
+    if not search_query:
+        if reply and reply.text:
+            search_query = reply.text
+        else:
+            return await eod(event, "__Whom should i search.__")
     try:
         user = jikan.user(search_query)
     except APIException:
         return await eod(event, "__No User found with given username__", 5)
     date_format = "%Y-%m-%d"
-    img = user["image_url"] or "https://telegra.ph//file/9b4205e1b1cc68a4ffd5e.jpg"
+    img = user["image_url"] or "https://graph.org/file/9b4205e1b1cc68a4ffd5e.jpg"
     try:
         user_birthday = datetime.fromisoformat(user["birthday"])
         user_birthday_formatted = user_birthday.strftime(date_format)
@@ -146,10 +148,8 @@ async def user(event):
         if user[entity] is None:
             user[entity] = "Unknown"
     about = user["about"].split(" ", 60)
-    try:
+    with contextlib.suppress(IndexError):
         about.pop(60)
-    except IndexError:
-        pass
     about_string = " ".join(about)
     about_string = about_string.replace("<br>", "").strip().replace("\r\n", "\n")
     caption = ""
@@ -185,7 +185,7 @@ async def user(event):
         "examples": "{tr}airing one piece",
     },
 )
-async def airimg(event):
+async def anilist(event):
     "Get airing date & time of any anime"
     search = event.pattern_match.group(1)
     if not search:
@@ -211,34 +211,26 @@ async def airimg(event):
     pattern="anime(?:\s|$)([\s\S]*)",
     command=("anime", menu_category),
     info={
-        "header": "Shows you the details of the anime.",
-        "description": "Fectchs anime information from anilist",
-        "usage": "{tr}anime <name of anime>",
-        "examples": "{tr}anime fairy tail",
+        "header": "search anime.",
+        "description": "Fetches anime information from anilist",
+        "flags": {
+            "d": "shows you anime details (another format)",
+            "s": "anime search list (shows only anime name and link to anilist)",
+            "n": "get details of specific anime number from search list",
+        },
+        "note": "for flag n you need to use number attached to flag",
+        "usage": "{tr}anime <flags> <name of anime>",
+        "examples": [
+            "{tr}anime fairy tail",
+            "{tr}anime -d fairy tail",
+            "{tr}anime -s fairy tail",
+            "{tr}anime -n3 fairy tail",
+        ],
     },
 )
-async def anime(event):
+async def anilist(event):  # sourcery no-metrics
+    # sourcery skip: low-code-quality
     "Get info on any anime."
-    input_str = event.pattern_match.group(1)
-    if not input_str:
-        return await eod(event, "__What should i search ? Gib me Something to Search__")
-    event = await eor(event, "`Searching...`")
-    result = await callAPI(input_str)
-    msg = await formatJSON(result)
-    await event.edit(msg, link_preview=True)
-
-
-@legend.legend_cmd(
-    pattern="manga(?:\s|$)([\s\S]*)",
-    command=("manga", menu_category),
-    info={
-        "header": "Searches for manga.",
-        "usage": "{tr}manga <manga name",
-        "examples": "{tr}manga fairy tail",
-    },
-)
-async def get_manga(event):
-    "searches for manga."
     reply_to = await reply_id(event)
     input_str = event.pattern_match.group(1)
     reply = await event.get_reply_message()
@@ -249,15 +241,202 @@ async def get_manga(event):
             return await eod(
                 event, "__What should i search ? Gib me Something to Search__"
             )
-    legendevent = await eor(event, "`Searching Manga..`")
-    jikan = jikanpy.jikan.Jikan()
-    search_result = jikan.search("manga", input_str)
-    first_mal_id = search_result["results"][0]["mal_id"]
-    caption, image = await get_anime_manga(first_mal_id, "anime_manga", event.chat_id)
-    await legendevent.delete()
-    await event.client.send_file(
-        event.chat_id, file=image, caption=caption, parse_mode="html", reply_to=reply_to
-    )
+    match = input_str
+    animeno = re.findall(r"-n\d+", match)
+    listview = re.findall(r"-s", match)
+    myanime = re.findall(r"-d", match)
+    specific = bool(animeno)
+    try:
+        animeno = animeno[0]
+        animeno = animeno.replace("-n", "")
+        match = match.replace(f"-n{animeno}", "")
+        animeno = int(animeno)
+    except IndexError:
+        animeno = 1
+    if animeno < 1 or animeno > 10:
+        return await eor(
+            event,
+            "`anime number must be in between 1 to 10 use -l flag to query results`",
+        )
+    legendevent = await eor(event, "`Searching Anime..`")
+    match = match.replace("-s", "")
+    listview = bool(listview)
+    match = match.replace("-d", "")
+    myanime = bool(myanime)
+    query = match.strip()
+    result, respone = await searchanilist(query)
+    if not respone:
+        return await eod(legendevent, result)
+    if len(result) == 0:
+        return await eor(
+            legendevent, f"**Search query:** `{query}`\n**Result:** `No results found`"
+        )
+    input_str = result[0]["title"]["english"] or result[0]["title"]["romaji"]
+    if myanime:
+        result = await callAPI(input_str)
+        msg = await formatJSON(result)
+        await legendevent.edit(msg, link_preview=True)
+        return
+    if listview:
+        msg = f"<b>Search Query: </b> <code>{query}</code>\n\n<b>Results:</b>\n"
+        i = 1
+        ani_data = result
+        for result in ani_data:
+            if i > 10:
+                break
+            input_str = result["title"]["english"] or result["title"]["romaji"]
+            if result["title"]["english"]:
+                msg += f'<b>{i}.</b> <code>{result["title"]["english"]}</code> - <a href="{result["siteUrl"]}">{result["title"]["romaji"]}</a>\n'
+            else:
+                msg += f'<b>{i}.</b> <code>{result["title"]["romaji"]}</code> - <a href="{result["siteUrl"]}">{result["title"]["native"]}</a>\n'
+            i += 1
+        await legendevent.edit(msg, parse_mode="html")
+        return
+    input_str = result[animeno - 1]["title"]["romaji"] if specific else query
+    caption, image = await get_anime_manga(input_str, "anime_anime", event.chat_id)
+    if image is None:
+        await eor(legendevent, caption, parse_mode="html")
+        return
+    try:
+        downloader = SmartDL(image, anime_path, progress_bar=False)
+        downloader.start(blocking=False)
+        while not downloader.isFinished():
+            pass
+        await event.client.send_file(
+            event.chat_id,
+            file=anime_path,
+            caption=caption,
+            parse_mode="html",
+            reply_to=reply_to,
+        )
+        await legendevent.delete()
+        os.remove(anime_path)
+    except BaseException:
+        image = getBannerLink(first_mal_id, True)
+        await event.client.send_file(
+            event.chat_id,
+            file=image,
+            caption=caption,
+            parse_mode="html",
+            reply_to=reply_to,
+        )
+        await legendevent.delete()
+
+
+@legend.legend_cmd(
+    pattern="manga(?:\s|$)([\s\S]*)",
+    command=("manga", menu_category),
+    info={
+        "header": "search manga.",
+        "description": "Fetches manga information from anilist",
+        "flags": {
+            "d": "shows you manga details (another format)",
+            "s": "manga search list (shows only manga name and link to anilist)",
+            "n": "get details of specific manga number from search list",
+        },
+        "note": "for flag n you need to use number attached to flag",
+        "usage": "{tr}manga <flags> <name of manga>",
+        "examples": [
+            "{tr}manga wind breaker",
+            "{tr}manga -d wind breaker",
+            "{tr}manga -s wind breaker",
+            "{tr}manga -n2 wind breaker",
+        ],
+    },
+)
+async def anilist(event):  # sourcery no-metrics
+    # sourcery skip: low-code-quality
+    "Get info on any manga."
+    reply_to = await reply_id(event)
+    input_str = event.pattern_match.group(1)
+    reply = await event.get_reply_message()
+    if not input_str:
+        if reply:
+            input_str = reply.text
+        else:
+            return await eod(
+                event, "__What should i search ? Gib me Something to Search__"
+            )
+    match = input_str
+    animeno = re.findall(r"-n\d+", match)
+    listview = re.findall(r"-s", match)
+    myanime = re.findall(r"-d", match)
+    specific = bool(animeno)
+    try:
+        animeno = animeno[0]
+        animeno = animeno.replace("-n", "")
+        match = match.replace(f"-n{animeno}", "")
+        animeno = int(animeno)
+    except IndexError:
+        animeno = 1
+    if animeno < 1 or animeno > 10:
+        return await eor(
+            event,
+            "`manga number must be in between 1 to 10 use -l flag to query results`",
+        )
+    legendevent = await eor(event, "`Searching manga..`")
+    match = match.replace("-s", "")
+    listview = bool(listview)
+    match = match.replace("-d", "")
+    myanime = bool(myanime)
+    query = match.strip()
+    result, respone = await searchanilist(query, manga=True)
+    if not respone:
+        return await eod(legendevent, result)
+    if len(result) == 0:
+        return await eor(
+            legendevent, f"**Search query:** `{query}`\n**Result:** `No results found`"
+        )
+    input_str = result[0]["title"]["english"] or result[0]["title"]["romaji"]
+    if myanime:
+        result = await callAPI(input_str)
+        msg = await formatJSON(result)
+        await legendevent.edit(msg, link_preview=True)
+        return
+    if listview:
+        msg = f"<b>Search Query: </b> <code>{query}</code>\n\n<b>Results:</b>\n"
+        i = 1
+        ani_data = result
+        for result in ani_data:
+            if i > 10:
+                break
+            input_str = result["title"]["english"] or result["title"]["romaji"]
+            if result["title"]["english"]:
+                msg += f'<b>{i}.</b> <code>{result["title"]["english"]}</code> - <a href="{result["siteUrl"]}">{result["title"]["romaji"]}</a>\n'
+            else:
+                msg += f'<b>{i}.</b> <code>{result["title"]["romaji"]}</code> - <a href="{result["siteUrl"]}">{result["title"]["native"]}</a>\n'
+            i += 1
+        await legendevent.edit(msg, parse_mode="html")
+        return
+    input_str = result[animeno - 1]["title"]["romaji"] if specific else query
+    caption, image = await get_anime_manga(input_str, "anime_manga", event.chat_id)
+    if image is None:
+        await eor(legendevent, caption, parse_mode="html")
+        return
+    try:
+        downloader = SmartDL(image, anime_path, progress_bar=False)
+        downloader.start(blocking=False)
+        while not downloader.isFinished():
+            pass
+        await event.client.send_file(
+            event.chat_id,
+            file=anime_path,
+            caption=caption,
+            parse_mode="html",
+            reply_to=reply_to,
+        )
+        await legendevent.delete()
+        os.remove(anime_path)
+    except BaseException:
+        image = getBannerLink(first_mal_id, True)
+        await event.client.send_file(
+            event.chat_id,
+            file=image,
+            caption=caption,
+            parse_mode="html",
+            reply_to=reply_to,
+        )
+        await legendevent.delete()
 
 
 @legend.legend_cmd(
@@ -275,7 +454,7 @@ async def get_manga(event):
         ],
     },
 )
-async def fillers(event):
+async def get_anime(event):
     "to get list of filler episodes."
     input_str = event.pattern_match.group(1)
     reply = await event.get_reply_message()
@@ -290,7 +469,7 @@ async def fillers(event):
     try:
         anime = anime[0]
         anime = anime.replace("-n", "")
-        input_str = input_str.replace("-n" + anime, "")
+        input_str = input_str.replace(f"-n{anime}", "")
         anime = int(anime)
     except IndexError:
         anime = 0
@@ -343,16 +522,27 @@ async def fillers(event):
 
 
 @legend.legend_cmd(
-    pattern="sanime(?:\s|$)([\s\S]*)",
-    command=("sanime", menu_category),
+    pattern="char(?:\s|$)([\s\S]*)",
+    command=("char", menu_category),
     info={
-        "header": "Searches for anime.",
-        "usage": "{tr}sanime <anime name",
-        "examples": "{tr}sanime black clover",
+        "header": "search character.",
+        "description": "Fetches character information from anilist",
+        "flags": {
+            "s": "character search list (shows only character name and link to anilist)",
+            "n": "get details of specific character number from search list",
+        },
+        "note": "for flag n you need to use number attached to flag",
+        "usage": "{tr}character <flags> <name of character>",
+        "examples": [
+            "{tr}character erza scarlet",
+            "{tr}character -s erza scarlet",
+            "{tr}character -n2 erza scarlet",
+        ],
     },
 )
-async def get_anime(event):
-    "searches for anime."
+async def anilist(event):  # sourcery no-metrics
+    # sourcery skip: low-code-quality
+    "Get info on any character."
     reply_to = await reply_id(event)
     input_str = event.pattern_match.group(1)
     reply = await event.get_reply_message()
@@ -363,93 +553,89 @@ async def get_anime(event):
             return await eod(
                 event, "__What should i search ? Gib me Something to Search__"
             )
-    legendevent = await eor(event, "`Searching Anime..`")
-    jikan = jikanpy.jikan.Jikan()
-    search_result = jikan.search("anime", input_str)
-    first_mal_id = search_result["results"][0]["mal_id"]
-    caption, image = await get_anime_manga(first_mal_id, "anime_anime", event.chat_id)
+    match = input_str
+    animeno = re.findall(r"-n\d+", match)
+    listview = re.findall(r"-s", match)
+    specific = bool(animeno)
     try:
-        downloader = SmartDL(image, anime_path, progress_bar=False)
-        downloader.start(blocking=False)
-        while not downloader.isFinished():
-            pass
-        await event.client.send_file(
-            event.chat_id,
-            file=anime_path,
-            caption=caption,
-            parse_mode="html",
-            reply_to=reply_to,
-        )
-        await legendevent.delete()
-        os.remove(anime_path)
-    except BaseException:
-        image = getBannerLink(first_mal_id, True)
-        await event.client.send_file(
-            event.chat_id,
-            file=image,
-            caption=caption,
-            parse_mode="html",
-            reply_to=reply_to,
-        )
-
-
-"""
-@legend.legend_cmd(
-    pattern="char(?:\s|$)([\s\S]*)",
-    command=("char", menu_category),
-    info={
-        "header": "Shows you character infomation.",
-        "usage": "{tr}char <char name>",
-        "examples": "{tr}char erza scarlet",
-    },
-)
-async def character(event):
-    "Character information."
-    reply_to = await reply_id(event)
-    search_query = event.pattern_match.group(1)
-    reply = await event.get_reply_message()
-    if not search_query:
-        if reply:
-            search_query = reply.text
-        else:
-            return await eod(
-                event, "__What should i search ? Gib me Something to Search__"
-            )
-    legendevent = await eor(event, "`Searching Character...`")
-    try:
-        search_result = jikan.search("character", search_query)
-    except APIException:
-        return await eod(legendevent, "`Character not found.`")
-    first_mal_id = search_result["results"][0]["mal_id"]
-    character = jikan.character(first_mal_id)
-    caption = f"[{character['name']}]({character['url']})"
-    if character["name_kanji"] != "Japanese":
-        caption += f" ({character['name_kanji']})\n"
-    else:
-        caption += "\n"
-    if character["nicknames"]:
-        nicknames_string = ", ".join(character["nicknames"])
-        caption += f"\n**Nicknames** : `{nicknames_string}`"
-    about = character["about"].split(" ", 60)
-    try:
-        about.pop(60)
+        animeno = animeno[0]
+        animeno = animeno.replace("-n", "")
+        match = match.replace(f"-n{animeno}", "")
+        animeno = int(animeno)
     except IndexError:
-        pass
-    about_string = " ".join(about)
-    mal_url = search_result["results"][0]["url"]
-    for entity in character:
-        if character[entity] is None:
-            character[entity] = "Unknown"
-    caption += f"\n🔰**Extracted Character Data**🔰\n\n{about_string}"
-    caption += f" [Read More]({mal_url})..."
-    await legendevent.delete()
+        animeno = 1
+    if animeno < 1 or animeno > 10:
+        return await eor(
+            event,
+            "`character number must be in between 1 to 10 use -l flag to query results`",
+        )
+    legendevent = await eor(event, "`Searching character..`")
+    match = match.replace("-s", "")
+    listview = bool(listview)
+    query = match.strip()
+    search_query = {"page": 1, "perPage": 10, "query": query}
+    result = await anime_json_synomsis(character_query, search_query)
+    result = result["data"]["Page"]["characters"]
+    if len(result) == 0:
+        return await eor(
+            legendevent, f"**Search query:** `{query}`\n**Result:** `No results found`"
+        )
+    if listview:
+        msg = f"<b>Search Query: </b> <code>{query}</code>\n\n<b>Results:</b>\n"
+        i = 1
+        ani_data = result
+        for result in ani_data:
+            if i > 10:
+                break
+            msg += f'<b>{i}.</b> <code>{result["name"]["full"]}</code> - <a href="{result["siteUrl"]}">{result["name"]["first"]}</a>\n'
+            i += 1
+        await legendevent.edit(msg, parse_mode="html")
+        return
+    result = result[animeno - 1] if specific else result[0]
+    for entity in result:
+        if result[entity] is None:
+            result[entity] = "Unknown"
+    dateofbirth = []
+    if result["dateOfBirth"]["year"]:
+        dateofbirth.append(str(result["dateOfBirth"]["year"]))
+    if result["dateOfBirth"]["month"]:
+        dateofbirth.append(str(result["dateOfBirth"]["month"]))
+    if result["dateOfBirth"]["day"]:
+        dateofbirth.append(str(result["dateOfBirth"]["day"]))
+    dob = "-".join(dateofbirth) if dateofbirth else "Unknown"
+    caption = textwrap.dedent(
+        f"""
+        🆎 <b> Name</b>: <i>{result['name']['full']}</i>
+        🆔 <b>AL ID</b>: <i>{result['id']}</i>
+        👫 <b>Gender</b>: <i>{result['gender'].lower()}</i>
+        🔢 <b>Age</b>: <i>{result['age']}</i>
+        🎂 <b>Date of Birth</b>: {dob}
+        📃 <b>Blood Type</b>: <i>{result['bloodType']}</i>
+        📊 <b>Liked By</b>: <i>{result['favourites']}</i>
+        """
+    )
+    html_ = f"""<a href="{result['siteUrl']}">"""
+    html_ += f"""<img src="{result['image']['large']}"/></a>"""
+    html_ += "<br>"
+    html_ += f"<h3>{result['name']['full']}</h3>"
+    html_ += f"<em>{result['name']['native']}</em><br>"
+    html_ += f"<b>Character ID</b>: {result['id']}<br>"
+    html_ += f"<h4>About Character and Role:</h4>{result['description'] or 'N/A'}"
+    html_ += "<br><br>"
+    html_ += f"<a href='{result['siteUrl']}'> View on anilist</a>"
+
+    synopsis_link = await post_to_telegraph(
+        result["name"]["full"], f"<code>{caption}</code>\n<br>{html_}"
+    )
+
     await event.client.send_file(
         event.chat_id,
-        file=character["image_url"],
-        caption=replace_text(caption),
+        file=result["image"]["large"],
+        caption=caption
+        + f"📖 <a href='{synopsis_link}'><b>Description</b></a> <b>&</b> <a href='{result['siteUrl']}'><b>Read More</b></a>",
+        parse_mode="html",
         reply_to=reply_to,
     )
-"""
 
 
 @legend.legend_cmd(
@@ -469,7 +655,8 @@ async def character(event):
         ],
     },
 )
-async def anime_downld(event):  # sourcery no-metrics
+async def anime_download(event):  # sourcery no-metrics
+    # sourcery skip: low-code-quality
     "Anime download links."
     search_query = event.pattern_match.group(2)
     input_str = event.pattern_match.group(1)
@@ -484,8 +671,7 @@ async def anime_downld(event):  # sourcery no-metrics
         search_url = f"https://animekaizoku.com/?s={search_query}"
         html_text = requests.get(search_url, headers=headers).text
         soup = bs4.BeautifulSoup(html_text, "html.parser")
-        search_result = soup.find_all("h2", {"class": "post-title"})
-        if search_result:
+        if search_result := soup.find_all("h2", {"class": "post-title"}):
             result = f"<a href={search_url}>Click Here For More Results</a> <b>of</b> <code>{html.escape(search_query)}</code> <b>on</b> <code>AnimeKaizoku</code>: \n\n"
             for entry in search_result:
                 post_link = "https://animekaizoku.com/" + entry.a["href"]
@@ -591,13 +777,18 @@ async def whatanime(event):
     reply = await event.get_reply_message()
     if not reply:
         return await eod(event, "__reply to media to reverse search that anime__.")
-    mediatype = media_type(reply)
-    if mediatype not in ["Photo", "Video", "Gif", "Sticker"]:
+    mediatype = await media_type(reply)
+    if mediatype not in ["Photo", "Video", "Gif", "Sticker", "Document"]:
         return await eod(
             event,
             f"__Reply to proper media that is expecting photo/video/gif/sticker. not {mediatype}__.",
         )
-    output = await _legendtools.media_to_pic(event, reply)
+    output = await Convert.to_image(
+        event,
+        reply,
+        dirct="./temp",
+        file="wanime.png",
+    )
     if output[1] is None:
         return await eod(
             output[0], "__Unable to extract image from the replied message.__"
@@ -610,11 +801,11 @@ async def whatanime(event):
             response = upload_file(output[1])
         except exceptions.TelegraphException as exc:
             return await eod(output[0], f"**Error :**\n__{exc}__")
-    legend = f"https://telegra.ph{response[0]}"
+    lol = f"https://graph.org{response[0]}"
     await output[0].edit("`Searching for result..`")
     async with aiohttp.ClientSession() as session:
         async with session.post(
-            f"https://api.trace.moe/search?anilistInfo&url={quote_plus(legend)}"
+            f"https://api.trace.moe/search?anilistInfo&url={quote_plus(lol)}"
         ) as raw_resp0:
             resp0 = await raw_resp0.json()
         framecount = resp0["frameCount"]

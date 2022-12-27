@@ -20,9 +20,9 @@ LOGS = logging.getLogger(__name__)
     command=("chatblacklist", menu_category),
     info={
         "header": "To enable and disable chats blacklist.",
-        "description": "If you turn this on, then your Legendbot won't work on the chats stored\
+        "description": "If you turn this on, then your userbot won't work on the chats stored\
          in database by addblkchat cmd. If you turn it off even though you added chats to database\
-         Legendbot won't stop working in that chat.",
+         userbot won't stop working in that chat.",
         "usage": "{tr}chatblacklist <on/off>",
     },
 )
@@ -34,10 +34,10 @@ async def chat_blacklist(event):
         if gvarstatus("blacklist_chats") is not None:
             return await eod(event, "__Already it was turned on.__")
         addgvar("blacklist_chats", "true")
-        text = "__From now ChatBlackList ON, your LegendBot doesn't work in that chats which u add in BlackList __.Stored in database."
+        text = "__From now on, your LegendUserbot doesn't work in the chats stored in database.__"
         if len(blkchats) != 0:
             text += (
-                "\n**Bot is reloading to apply the changes. Please wait for a minute**"
+                "**Bot is reloading to apply the changes. Please wait for a minute**"
             )
             msg = await eor(
                 event,
@@ -51,7 +51,7 @@ async def chat_blacklist(event):
         )
     if gvarstatus("blacklist_chats") is not None:
         delgvar("blacklist_chats")
-        text = "__Your LegendBot is as free as a bird.It works in Every Chat .__"
+        text = "__Your LegendUserbot is as free as a bird.It works in Every Chat .__"
         if len(blkchats) != 0:
             text += (
                 "**Bot is reloading to apply the changes. Please wait for a minute**"
@@ -180,7 +180,9 @@ async def add_blacklist_chat(event):
                 if chatid in blkchats:
                     chatname = blacklistchats[str(chatid)]["chat_name"]
                     del blacklistchats[str(chatid)]
-                    result += f"Successfully removed {chatname} from blacklisted chats.\nNow Bot Will Run In That Group"
+                    result += (
+                        f"successfully removed {chatname} from blacklisted chats.\n"
+                    )
                 else:
                     errors += f"the given id {chatid} doesn't exists in your database. That is it hasn't been blacklisted.\n"
             except Exception as e:
@@ -230,7 +232,7 @@ async def add_blacklist_chat(event):
         blacklistchats = {}
     if len(blkchats) == 0:
         return await eod(event, "__There are no blacklisted chats in your bot.__")
-    result = "🔰 **The list of blacklisted chats are :**\n\n"
+    result = "**The list of blacklisted chats are :**\n\n"
     for chat in blkchats:
         result += f"☞ {blacklistchats[str(chat)]['chat_name']}\n"
         result += f"**Chat Id :** `{chat}`\n"

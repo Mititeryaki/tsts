@@ -1,7 +1,8 @@
-# Made by @LEGEND_K_BOY and @LEGEND_K_BOY
-# memify plugin for LegendUserBot
+# Made by @mrconfused and @krishna1709
+# memify plugin for legenduserbot
 import asyncio
 import base64
+import contextlib
 import io
 import os
 import random
@@ -10,14 +11,12 @@ import string
 from PIL import Image, ImageFilter
 from telethon.tl.functions.messages import ImportChatInviteRequest as Get
 
-from Legendbot import BOTLOG_CHATID, legend
+from Legendbot import Convert, legend
 
 from ..core.managers import eod, eor
-from ..helpers import asciiart, media_type, swt_meeme, swt_meme
+from ..helpers import asciiart, lol_meeme, lol_meme, media_type
 from ..helpers.functions import (
     add_frame,
-    convert_toimage,
-    convert_tosticker,
     crop,
     flip_image,
     grayscale,
@@ -25,9 +24,8 @@ from ..helpers.functions import (
     mirror_file,
     solarize,
 )
-from ..helpers.utils import _legendtools, reply_id
+from ..helpers.utils import reply_id
 from ..sql_helper.globals import addgvar, gvarstatus
-from . import deEmojify
 
 menu_category = "fun"
 
@@ -64,9 +62,10 @@ font_list = [
     },
 )
 async def maccmd(event):  # sourcery no-metrics
+    # sourcery skip: low-code-quality
     "Adds frame for the replied image."
     reply = await event.get_reply_message()
-    mediatype = media_type(reply)
+    mediatype = await media_type(reply)
     if not reply or not mediatype or mediatype not in ["Photo", "Sticker"]:
         return await eod(event, "__Reply to photo or sticker to frame it.__")
     if mediatype == "Sticker" and reply.document.mime_type == "application/i-tgsticker":
@@ -78,7 +77,9 @@ async def maccmd(event):  # sourcery no-metrics
     args = event.pattern_match.group(1)
     force = bool(args)
     try:
-        imag = await _legendtools.media_to_pic(legendevent, reply, noedits=True)
+        imag = await Convert.to_image(
+            legendevent, reply, dirct="./temp", file="pframe.png", noedits=True
+        )
         if imag[1] is None:
             return await eod(
                 imag[0], "__Unable to extract image from the replied message.__"
@@ -124,8 +125,6 @@ async def maccmd(event):  # sourcery no-metrics
         event.chat_id, output, reply_to=reply, force_document=force
     )
     await legendevent.delete()
-    if os.path.exists(output):
-        os.remove(output)
 
 
 @legend.legend_cmd(
@@ -156,8 +155,8 @@ async def memes(event):
     reply = await event.get_reply_message()
     if not reply:
         return await eod(event, "`Reply to supported Media...`")
-    swtid = await reply_id(event)
-    san = base64.b64decode("MFdZS2llTVloTjAzWVdNeA==")
+    lolid = await reply_id(event)
+    krish = base64.b64decode("MFdZS2llTVloTjAzWVdNeA==")
     if not legendinput:
         return await eod(
             event, "`what should i write on that u idiot give text to memify`"
@@ -169,30 +168,32 @@ async def memes(event):
         bottom = ""
     if not os.path.isdir("./temp"):
         os.mkdir("./temp")
-    output = await _legendtools.media_to_pic(event, reply)
+    output = await Convert.to_image(
+        event, reply, dirct="./temp", file="mmf.png", rgb=True
+    )
     if output[1] is None:
         return await eod(
             output[0], "__Unable to extract image from the replied message.__"
         )
-    try:
-        san = Get(san)
-        await event.client(san)
-    except BaseException:
-        pass
-    meme_file = convert_toimage(output[1])
+    with contextlib.suppress(BaseException):
+        krish = Get(krish)
+        await event.client(krish)
+    meme_file = output[1]
     meme = os.path.join("./temp", "legendmeme.jpg")
     if gvarstatus("CNG_FONTS") is None:
         CNG_FONTS = "Legendbot/helpers/styles/impact.ttf"
     else:
         CNG_FONTS = gvarstatus("CNG_FONTS")
     if max(len(top), len(bottom)) < 21:
-        await swt_meme(CNG_FONTS, top, bottom, meme_file, meme)
+        await lol_meme(CNG_FONTS, top, bottom, meme_file, meme)
     else:
-        await swt_meeme(top, bottom, CNG_FONTS, meme_file, meme)
+        await lol_meeme(top, bottom, CNG_FONTS, meme_file, meme)
     if cmd != "mmf":
-        meme = convert_tosticker(meme)
+        meme = (await Convert.to_sticker(event, meme, file="memes.webp", noedits=True))[
+            1
+        ]
     await event.client.send_file(
-        event.chat_id, meme, reply_to=swtid, force_document=False
+        event.chat_id, meme, reply_to=lolid, force_document=False
     )
     await output[0].delete()
     for files in (meme, meme_file):
@@ -243,36 +244,39 @@ async def memes(event):
     reply = await event.get_reply_message()
     if not reply:
         return await eod(event, "`Reply to supported Media...`")
-    san = base64.b64decode("MFdZS2llTVloTjAzWVdNeA==")
-    swtid = await reply_id(event)
+    krish = base64.b64decode("MFdZS2llTVloTjAzWVdNeA==")
+    lolid = await reply_id(event)
     if not os.path.isdir("./temp"):
         os.mkdir("./temp")
-    jisanidea = None
-    output = await _legendtools.media_to_pic(event, reply)
+    sweetieidea = None
+    output = await Convert.to_image(
+        event,
+        reply,
+        dirct="./temp",
+        file="ascii.png",
+    )
     if output[1] is None:
         return await eod(
             output[0], "__Unable to extract image from the replied message.__"
         )
-    meme_file = convert_toimage(output[1])
+    meme_file = output[1]
     if output[2] in ["Round Video", "Gif", "Sticker", "Video"]:
-        jisanidea = True
-    try:
-        san = Get(san)
-        await event.client(san)
-    except BaseException:
-        pass
+        sweetieidea = True
+    with contextlib.suppress(BaseException):
+        krish = Get(krish)
+        await event.client(krish)
     outputfile = (
         os.path.join("./temp", "ascii_file.webp")
-        if jisanidea
+        if sweetieidea
         else os.path.join("./temp", "ascii_file.jpg")
     )
     c_list = random_color()
     color1 = c_list[0]
     color2 = c_list[1]
-    bgcolor = "#080808" if not legendinput else legendinput
+    bgcolor = legendinput or "#080808"
     asciiart(meme_file, 0.3, 1.9, outputfile, color1, color2, bgcolor)
     await event.client.send_file(
-        event.chat_id, outputfile, reply_to=swtid, force_document=False
+        event.chat_id, outputfile, reply_to=lolid, force_document=False
     )
     await output[0].delete()
     for files in (outputfile, meme_file):
@@ -293,32 +297,35 @@ async def memes(event):
     if not (reply and (reply.media)):
         await eor(event, "`Reply to supported Media...`")
         return
-    san = base64.b64decode("MFdZS2llTVloTjAzWVdNeA==")
-    swtid = await reply_id(event)
+    krish = base64.b64decode("MFdZS2llTVloTjAzWVdNeA==")
+    lolid = await reply_id(event)
     if not os.path.isdir("./temp/"):
         os.mkdir("./temp/")
-    jisanidea = None
-    output = await _legendtools.media_to_pic(event, reply)
+    sweetieidea = None
+    output = await Convert.to_image(
+        event,
+        reply,
+        dirct="./temp",
+        file="invert.png",
+    )
     if output[1] is None:
         return await eod(
             output[0], "__Unable to extract image from the replied message.__"
         )
-    meme_file = convert_toimage(output[1])
+    meme_file = output[1]
     if output[2] in ["Round Video", "Gif", "Sticker", "Video"]:
-        jisanidea = True
-    try:
-        san = Get(san)
-        await event.client(san)
-    except BaseException:
-        pass
+        sweetieidea = True
+    with contextlib.suppress(BaseException):
+        krish = Get(krish)
+        await event.client(krish)
     outputfile = (
         os.path.join("./temp", "invert.webp")
-        if jisanidea
+        if sweetieidea
         else os.path.join("./temp", "invert.jpg")
     )
     await invert_colors(meme_file, outputfile)
     await event.client.send_file(
-        event.chat_id, outputfile, force_document=False, reply_to=swtid
+        event.chat_id, outputfile, force_document=False, reply_to=lolid
     )
     await output[0].delete()
     for files in (outputfile, meme_file):
@@ -339,32 +346,35 @@ async def memes(event):
     reply = await event.get_reply_message()
     if not reply:
         return await eod(event, "`Reply to supported Media...`")
-    san = base64.b64decode("MFdZS2llTVloTjAzWVdNeA==")
-    swtid = await reply_id(event)
+    krish = base64.b64decode("MFdZS2llTVloTjAzWVdNeA==")
+    lolid = await reply_id(event)
     if not os.path.isdir("./temp"):
         os.mkdir("./temp")
-    jisanidea = None
-    output = await _legendtools.media_to_pic(event, reply)
+    sweetieidea = None
+    output = await Convert.to_image(
+        event,
+        reply,
+        dirct="./temp",
+        file="solarize.png",
+    )
     if output[1] is None:
         return await eod(
             output[0], "__Unable to extract image from the replied message.__"
         )
-    meme_file = convert_toimage(output[1])
+    meme_file = output[1]
     if output[2] in ["Round Video", "Gif", "Sticker", "Video"]:
-        jisanidea = True
-    try:
-        san = Get(san)
-        await event.client(san)
-    except BaseException:
-        pass
+        sweetieidea = True
+    with contextlib.suppress(BaseException):
+        krish = Get(krish)
+        await event.client(krish)
     outputfile = (
         os.path.join("./temp", "solarize.webp")
-        if jisanidea
+        if sweetieidea
         else os.path.join("./temp", "solarize.jpg")
     )
     await solarize(meme_file, outputfile)
     await event.client.send_file(
-        event.chat_id, outputfile, force_document=False, reply_to=swtid
+        event.chat_id, outputfile, force_document=False, reply_to=lolid
     )
     await output[0].delete()
     for files in (outputfile, meme_file):
@@ -385,32 +395,35 @@ async def memes(event):
     reply = await event.get_reply_message()
     if not reply:
         return await eod(event, "`Reply to supported Media...`")
-    san = base64.b64decode("MFdZS2llTVloTjAzWVdNeA==")
-    swtid = await reply_id(event)
+    krish = base64.b64decode("MFdZS2llTVloTjAzWVdNeA==")
+    lolid = await reply_id(event)
     if not os.path.isdir("./temp"):
         os.mkdir("./temp")
-    jisanidea = None
-    output = await _legendtools.media_to_pic(event, reply)
+    sweetieidea = None
+    output = await Convert.to_image(
+        event,
+        reply,
+        dirct="./temp",
+        file="irotate.png",
+    )
     if output[1] is None:
         return await eod(
             output[0], "__Unable to extract image from the replied message.__"
         )
-    meme_file = convert_toimage(output[1])
+    meme_file = output[1]
     if output[2] in ["Round Video", "Gif", "Sticker", "Video"]:
-        jisanidea = True
-    try:
-        san = Get(san)
-        await event.client(san)
-    except BaseException:
-        pass
+        sweetieidea = True
+    with contextlib.suppress(BaseException):
+        krish = Get(krish)
+        await event.client(krish)
     outputfile = (
         os.path.join("./temp", "mirror_file.webp")
-        if jisanidea
+        if sweetieidea
         else os.path.join("./temp", "mirror_file.jpg")
     )
     await mirror_file(meme_file, outputfile)
     await event.client.send_file(
-        event.chat_id, outputfile, force_document=False, reply_to=swtid
+        event.chat_id, outputfile, force_document=False, reply_to=lolid
     )
     await output[0].delete()
     for files in (outputfile, meme_file):
@@ -431,32 +444,35 @@ async def memes(event):
     reply = await event.get_reply_message()
     if not reply:
         return await eod(event, "`Reply to supported Media...`")
-    san = base64.b64decode("MFdZS2llTVloTjAzWVdNeA==")
-    swtid = await reply_id(event)
+    krish = base64.b64decode("MFdZS2llTVloTjAzWVdNeA==")
+    lolid = await reply_id(event)
     if not os.path.isdir("./temp"):
         os.mkdir("./temp")
-    jisanidea = None
-    output = await _legendtools.media_to_pic(event, reply)
+    sweetieidea = None
+    output = await Convert.to_image(
+        event,
+        reply,
+        dirct="./temp",
+        file="flip.png",
+    )
     if output[1] is None:
         return await eod(
             output[0], "__Unable to extract image from the replied message.__"
         )
-    meme_file = convert_toimage(output[1])
+    meme_file = output[1]
     if output[2] in ["Round Video", "Gif", "Sticker", "Video"]:
-        jisanidea = True
-    try:
-        san = Get(san)
-        await event.client(san)
-    except BaseException:
-        pass
+        sweetieidea = True
+    with contextlib.suppress(BaseException):
+        krish = Get(krish)
+        await event.client(krish)
     outputfile = (
         os.path.join("./temp", "flip_image.webp")
-        if jisanidea
+        if sweetieidea
         else os.path.join("./temp", "flip_image.jpg")
     )
     await flip_image(meme_file, outputfile)
     await event.client.send_file(
-        event.chat_id, outputfile, force_document=False, reply_to=swtid
+        event.chat_id, outputfile, force_document=False, reply_to=lolid
     )
     await output[0].delete()
     for files in (outputfile, meme_file):
@@ -477,70 +493,40 @@ async def memes(event):
     reply = await event.get_reply_message()
     if not reply:
         return await eod(event, "`Reply to supported Media...`")
-    san = base64.b64decode("MFdZS2llTVloTjAzWVdNeA==")
-    swtid = await reply_id(event)
+    krish = base64.b64decode("MFdZS2llTVloTjAzWVdNeA==")
+    lolid = await reply_id(event)
     if not os.path.isdir("./temp"):
         os.mkdir("./temp")
-    jisanidea = None
-    output = await _legendtools.media_to_pic(event, reply)
+    sweetieidea = None
+    output = await Convert.to_image(
+        event,
+        reply,
+        dirct="./temp",
+        file="gray.png",
+    )
     if output[1] is None:
         return await eod(
             output[0], "__Unable to extract image from the replied message.__"
         )
-    meme_file = convert_toimage(output[1])
+    meme_file = output[1]
     if output[2] in ["Round Video", "Gif", "Sticker", "Video"]:
-        jisanidea = True
-    try:
-        san = Get(san)
-        await event.client(san)
-    except BaseException:
-        pass
+        sweetieidea = True
+    with contextlib.suppress(BaseException):
+        krish = Get(krish)
+        await event.client(krish)
     outputfile = (
         os.path.join("./temp", "grayscale.webp")
-        if jisanidea
+        if sweetieidea
         else os.path.join("./temp", "grayscale.jpg")
     )
     await grayscale(meme_file, outputfile)
     await event.client.send_file(
-        event.chat_id, outputfile, force_document=False, reply_to=swtid
+        event.chat_id, outputfile, force_document=False, reply_to=lolid
     )
     await output[0].delete()
     for files in (outputfile, meme_file):
         if files and os.path.exists(files):
             os.remove(files)
-
-
-@legend.legend_cmd(
-    pattern="gg ?([\s\S]*)",
-    command=("gg", menu_category),
-    info={
-        "header": "Try with Your Self,",
-    },
-)
-async def nope(kraken):
-    KANNADIGA = kraken.pattern_match.group(1)
-    if not KANNADIGA:
-        if kraken.is_reply:
-            (await kraken.get_reply_message()).message
-        else:
-            if gvarstatus("ABUSE") == "ON":
-                return await eor(kraken, "Abe chumtiye kuch likhne ke liye de")
-            else:
-                return await eor(kraken, "Googlax need some text to make sticker.")
-
-    troll = await bot.inline_query("GooglaxBot", f"{(deEmojify(KANNADIGA))}")
-    if troll:
-        await kraken.delete()
-        legen_ = await troll[0].click(BOTLOG_CHATID)
-        if legen_:
-            await kraken.client.send_file(
-                kraken.chat_id,
-                legen_,
-                caption="",
-            )
-        await kraken.delete()
-    else:
-        await eod(kraken, "Error 404:  Not Found")
 
 
 @legend.legend_cmd(
@@ -554,31 +540,34 @@ async def nope(kraken):
 async def memes(event):
     "zooms your media file."
     legendinput = event.pattern_match.group(1)
-    legendinput = 50 if not legendinput else int(legendinput)
+    legendinput = int(legendinput) if legendinput else 50
     reply = await event.get_reply_message()
     if not reply:
         return await eod(event, "`Reply to supported Media...`")
-    san = base64.b64decode("MFdZS2llTVloTjAzWVdNeA==")
-    swtid = await reply_id(event)
+    krish = base64.b64decode("MFdZS2llTVloTjAzWVdNeA==")
+    lolid = await reply_id(event)
     if not os.path.isdir("./temp"):
         os.mkdir("./temp")
-    jisanidea = None
-    output = await _legendtools.media_to_pic(event, reply)
+    sweetieidea = None
+    output = await Convert.to_image(
+        event,
+        reply,
+        dirct="./temp",
+        file="zoom.png",
+    )
     if output[1] is None:
         return await eod(
             output[0], "__Unable to extract image from the replied message.__"
         )
-    meme_file = convert_toimage(output[1])
+    meme_file = output[1]
     if output[2] in ["Round Video", "Gif", "Sticker", "Video"]:
-        jisanidea = True
-    try:
-        san = Get(san)
-        await event.client(san)
-    except BaseException:
-        pass
+        sweetieidea = True
+    with contextlib.suppress(BaseException):
+        krish = Get(krish)
+        await event.client(krish)
     outputfile = (
         os.path.join("./temp", "zoomimage.webp")
-        if jisanidea
+        if sweetieidea
         else os.path.join("./temp", "zoomimage.jpg")
     )
     try:
@@ -587,7 +576,7 @@ async def memes(event):
         return await output[0].edit(f"`{e}`")
     try:
         await event.client.send_file(
-            event.chat_id, outputfile, force_document=False, reply_to=swtid
+            event.chat_id, outputfile, force_document=False, reply_to=lolid
         )
     except Exception as e:
         return await output[0].edit(f"`{e}`")
@@ -623,27 +612,30 @@ async def memes(event):
     reply = await event.get_reply_message()
     if not reply:
         return await eod(event, "`Reply to supported Media...`")
-    san = base64.b64decode("MFdZS2llTVloTjAzWVdNeA==")
-    swtid = await reply_id(event)
+    krish = base64.b64decode("MFdZS2llTVloTjAzWVdNeA==")
+    lolid = await reply_id(event)
     if not os.path.isdir("./temp"):
         os.mkdir("./temp")
-    jisanidea = None
-    output = await _legendtools.media_to_pic(event, reply)
+    sweetieidea = None
+    output = await Convert.to_image(
+        event,
+        reply,
+        dirct="./temp",
+        file="framed.png",
+    )
     if output[1] is None:
         return await eod(
             output[0], "__Unable to extract image from the replied message.__"
         )
-    meme_file = convert_toimage(output[1])
+    meme_file = output[1]
     if output[2] in ["Round Video", "Gif", "Sticker", "Video"]:
-        jisanidea = True
-    try:
-        san = Get(san)
-        await event.client(san)
-    except BaseException:
-        pass
+        sweetieidea = True
+    with contextlib.suppress(BaseException):
+        krish = Get(krish)
+        await event.client(krish)
     outputfile = (
         os.path.join("./temp", "framed.webp")
-        if jisanidea
+        if sweetieidea
         else os.path.join("./temp", "framed.jpg")
     )
     try:
@@ -652,7 +644,7 @@ async def memes(event):
         return await output[0].edit(f"`{e}`")
     try:
         await event.client.send_file(
-            event.chat_id, outputfile, force_document=False, reply_to=swtid
+            event.chat_id, outputfile, force_document=False, reply_to=lolid
         )
     except Exception as e:
         return await output[0].edit(f"`{e}`")

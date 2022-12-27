@@ -11,8 +11,8 @@ from Legendbot import legend
 
 from ..core.logger import logging
 from ..core.managers import eod
-from ..helpers.functions import age_verification
-from ..helpers.utils import _legendutils, reply_id
+from ..helpers.functions import age_verification, unsavegif
+from ..helpers.utils import reply_id
 from . import BOTLOG, BOTLOG_CHATID
 
 LOGS = logging.getLogger(__name__)
@@ -27,7 +27,7 @@ menu_category = "misc"
     info={
         "header": "get a random reddit post.",
         "usage": "{tr}reddit <subreddit>",
-        "examples": "{tr}reddit memes",
+        "examples": "{tr}reddit dankmemes",
     },
 )
 async def reddit_fetch(event):
@@ -73,8 +73,8 @@ async def reddit_fetch(event):
 
         await event.delete()
         captionx += f"Source: [r/{subreddit}]({postlink})"
-        LEGEND = await event.client.send_file(
+        krishna = await event.client.send_file(
             event.chat_id, media_url, caption=captionx, reply_to=reply_to
         )
         if media_url.endswith(".gif"):
-            await _legendutils.unsavegif(event, LEGEND)
+            await unsavegif(event, krishna)

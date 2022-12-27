@@ -16,7 +16,7 @@ menu_category = "tools"
     info={
         "header": "To Execute terminal commands in a subprocess.",
         "usage": "{tr}exec <command>",
-        "examples": "{tr}exec legend stringsetup.py",
+        "examples": "{tr}exec lol stringsetup.py",
     },
 )
 async def _(event):
@@ -30,8 +30,8 @@ async def _(event):
     )
     stdout, stderr = await process.communicate()
     result = str(stdout.decode().strip()) + str(stderr.decode().strip())
-    LegendUSer = await event.client.get_me()
-    curruser = LegendUSer.username or "LegendUserBot"
+    legenduser = await event.client.get_me()
+    curruser = legenduser.username or "legenduserbot"
     uid = os.geteuid()
     if uid == 0:
         cresult = f"```{curruser}:~#``` ```{cmd}```\n```{result}```"
@@ -45,8 +45,7 @@ async def _(event):
     )
     if BOTLOG:
         await event.client.send_message(
-            BOTLOG_CHATID,
-            f"Terminal command\n\n `{cmd}`\n\n was executed sucessfully.",
+            BOTLOG_CHATID, f"Terminal command {cmd} was executed successfully."
         )
 
 
@@ -56,7 +55,7 @@ async def _(event):
     info={
         "header": "To Execute python script/statements in a subprocess.",
         "usage": "{tr}eval <command>",
-        "examples": "{tr}eval print('LegendUserBot')",
+        "examples": "{tr}eval print('legenduserbot')",
     },
 )
 async def _(event):
@@ -64,14 +63,6 @@ async def _(event):
     cmd = "".join(event.message.message.split(maxsplit=1)[1:])
     if not cmd:
         return await eod(event, "`What should i run ?..`")
-    if "session" in cmd:
-        return await eor(
-            event, "`This Is A Sensitive Data.So Its Protected By LegendBot.`"
-        )
-    if "LEGEND_STRING" in cmd:
-        return await eor(
-            event, "`This Is A Sensitive Data.So Its Protected By LegendBot.`"
-        )
     cmd = (
         cmd.replace("sendmessage", "send_message")
         .replace("sendfile", "send_file")
@@ -111,8 +102,7 @@ async def _(event):
     )
     if BOTLOG:
         await event.client.send_message(
-            BOTLOG_CHATID,
-            f"eval command\n\n`{cmd}` \n\nwas executed sucessfully.",
+            BOTLOG_CHATID, f"eval command {cmd} was executed successfully."
         )
 
 

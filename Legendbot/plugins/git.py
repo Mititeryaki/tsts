@@ -5,8 +5,6 @@ import aiohttp
 import requests
 from github import Github
 from pySmartDL import SmartDL
-from telethon.errors import ChatSendInlineForbiddenError as noin
-from telethon.errors.rpcerrorlist import BotMethodInvalidError as dedbot
 
 from Legendbot import legend
 
@@ -19,37 +17,27 @@ from . import reply_id
 LOGS = logging.getLogger(os.path.basename(__name__))
 ppath = os.path.join(os.getcwd(), "temp", "githubuser.jpg")
 menu_category = "misc"
-from . import Legend_channel
 
 GIT_TEMP_DIR = "./temp/"
-
-msg = f"""
-**⚜ 𝙻𝚎𝚐𝚎𝚗𝚍𝚊𝚛𝚢 𝙰𝚏 𝙻𝚎𝚐𝚎𝚗𝚍𝙱𝚘𝚝 ⚜**
-  •        [♥️ 𝚁𝚎𝚙𝚘 ♥️](https://github.com/LEGEND-AI/LEGENDBOT)
-  •        [♦️ Deploy ♦️](https://dashboard.heroku.com/new?button-url=https%3A%2F%2Fgithub.com%2FLEGEND-AI%2FLEGENDBOT&template=https%3A%2F%2Fgithub.com%2FLEGEND-AI%2FLEGENDBOT)
-  •  ©️ {Legend_channel} ™
-"""
 
 
 @legend.legend_cmd(
     pattern="repo$",
     command=("repo", menu_category),
     info={
-        "header": "Source code link of Legendbot",
+        "header": "Source code link of userbot",
         "usage": [
             "{tr}repo",
         ],
     },
 )
 async def source(e):
-    "Source code link of Legendbot"
-    reply_to_id = await reply_id(e)
-    try:
-        legend = await e.client.inline_query(Config.BOT_USERNAME, "repo")
-        await legend[0].click(e.chat_id, reply_to=reply_to_id, hide_via=True)
-        await e.delete()
-    except (noin, dedbot):
-        await eor(e, msg)
+    "Source code link of userbot"
+    await eor(
+        e,
+        "Click [here](https://github.com/LEGEND-AI/LEGENDUSERBOT) to open this bot source code\
+        \nClick [here](https://github.com/LEGEND-AI/LEGENDBOT) to open supported link for heroku",
+    )
 
 
 @legend.legend_cmd(
@@ -58,8 +46,8 @@ async def source(e):
     info={
         "header": "Shows the information about an user on GitHub of given username",
         "flags": {"-l": "repo limit : default to 5"},
-        "usage": "{tr}github [type] [username]",
-        "examples": ["{tr}github LEGEND-AI", "{tr}github -l5 LEGEND-AI"],
+        "usage": ".github [flag] [username]",
+        "examples": [".github krishna1709", ".github -l5 krishna1709"],
     },
 )
 async def _(event):
@@ -80,7 +68,7 @@ async def _(event):
             sec_res = requests.get(result["repos_url"])
             if sec_res.status_code == 200:
                 limit = event.pattern_match.group(2)
-                limit = 5 if not limit else int(limit)
+                limit = int(limit) if limit else 5
                 for repo in sec_res.json():
                     repos.append(f"[{repo['name']}]({repo['html_url']})")
                     limit -= 1
@@ -135,7 +123,7 @@ async def download(event):
         return await eod(event, "`Please ADD Proper Access Token from github.com`", 5)
     if Config.GIT_REPO_NAME is None:
         return await eod(
-            event, "`Please ADD Proper Github Repo Name of your Legendbot`", 5
+            event, "`Please ADD Proper Github Repo Name of your userbot`", 5
         )
     mone = await eor(event, "`Processing ...`")
     if not os.path.isdir(GIT_TEMP_DIR):
@@ -153,9 +141,7 @@ async def download(event):
     else:
         end = datetime.now()
         ms = (end - start).seconds
-        await mone.edit(
-            "Downloaded to `{}` in {} seconds.".format(downloaded_file_name, ms)
-        )
+        await mone.edit(f"Downloaded to `{downloaded_file_name}` in {ms} seconds.")
         await mone.edit("Committing to Github....")
         await git_commit(downloaded_file_name, mone)
 

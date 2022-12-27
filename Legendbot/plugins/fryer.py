@@ -4,13 +4,14 @@ from random import randint, uniform
 
 from PIL import Image, ImageEnhance, ImageOps
 from telethon.errors.rpcerrorlist import YouBlockedUserError
+from telethon.tl.functions.contacts import UnblockRequest as unblock
 from telethon.tl.types import DocumentAttributeFilename
 
-from Legendbot import legend
+from Legendbot import Convert, legend
 
-from ..core.managers import eod, eor
+from ..core.managers import eor
 from ..helpers.functions import delete_conv
-from ..helpers.utils import media_to_pic, reply_id
+from ..helpers.utils import reply_id
 
 menu_category = "extra"
 
@@ -50,6 +51,7 @@ async def deepfry(img: Image) -> Image:
 
 
 async def check_media(reply_message):
+    data = None
     if reply_message and reply_message.media:
         if reply_message.photo:
             data = reply_message.photo
@@ -85,20 +87,28 @@ async def check_media(reply_message):
 async def frybot(event):
     "Fries the given sticker or image"
     reply_to = await reply_id(event)
-    if not event.reply_to_msg_id:
-        event = await eod(event, "Reply to any user message.")
-    output = await media_to_pic(event, reply_message)
+    reply_message = await event.get_reply_message()
+    if not event.reply_to_msg_id or not reply_message.media:
+        return await eod(event, "```Reply to a media to fry it...```", 10)
+    output = await Convert.to_image(
+        event,
+        reply_message,
+        dirct="./temp",
+        file="frybot.png",
+    )
     if output[1] is None:
         return await eod(
             output[0], "__Unable to extract image from the replied message.__", 10
         )
     chat = "@image_deepfrybot"
-    lolevent = await eor(event, "```Processing...```")
+    legendevent = await eor(event, "```Processing...```")
     async with event.client.conversation(chat) as conv:
         try:
             msg_flag = await conv.send_message("/start")
         except YouBlockedUserError:
-            await eor(lolevent, "**Error:** Trying to unblock & retry, wait a sec...")
+            await eor(
+                legendevent, "**Error:** Trying to unblock & retry, wait a sec..."
+            )
             await legend(unblock("image_deepfrybot"))
             msg_flag = await conv.send_message("/start")
         await conv.get_response()
@@ -106,7 +116,7 @@ async def frybot(event):
         await event.client.send_file(conv.chat_id, output[1])
         response = await conv.get_response()
         await event.client.send_read_acknowledge(conv.chat_id)
-        await lolevent.delete()
+        await legendevent.delete()
         await event.client.send_file(event.chat_id, response, reply_to=reply_to)
         await delete_conv(event, chat, msg_flag)
         os.remove(output[1])

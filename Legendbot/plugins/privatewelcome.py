@@ -1,6 +1,7 @@
 from asyncio import sleep
 
 from telethon import events
+from telethon.utils import get_display_name
 
 from Legendbot import legend
 
@@ -17,7 +18,7 @@ menu_category = "utils"
 
 
 @legend.on(events.ChatAction)
-async def _(event):  # sourcery no-metrics
+async def _(event):  # sourcery no-metrics  # sourcery skip: low-code-quality
     cws = getcurrent_welcome_settings(event.chat_id)
     if (
         cws
@@ -27,13 +28,11 @@ async def _(event):  # sourcery no-metrics
         a_user = await event.get_user()
         chat = await event.get_chat()
         me = await event.client.get_me()
-        title = chat.title or "this chat"
+        title = get_display_name(await event.get_chat()) or "this chat"
         participants = await event.client.get_participants(chat)
         count = len(participants)
-        mention = "<a href='tg://user?id={}'>{}</a>".format(
-            a_user.id, a_user.first_name
-        )
-        my_mention = "<a href='tg://user?id={}'>{}</a>".format(me.id, me.first_name)
+        mention = f"<a href='tg://user?id={a_user.id}'>{a_user.first_name}</a>"
+        my_mention = f"<a href='tg://user?id={me.id}'>{me.first_name}</a>"
         first = a_user.first_name
         last = a_user.last_name
         fullname = f"{first} {last}" if last else first
@@ -121,7 +120,7 @@ async def save_welcome(event):
                 BOTLOG_CHATID,
                 f"#WELCOME_NOTE\
                 \nCHAT ID: {event.chat_id}\
-                \nThe following message is saved as the welcome note for the {event.chat.title}, Dont delete this message !!",
+                \nThe following message is saved as the welcome note for the {get_display_name(await event.get_chat())}, Dont delete this message !!",
             )
             msg_o = await event.client.forward_messages(
                 entity=BOTLOG_CHATID, messages=msg, from_peer=event.chat_id, silent=True

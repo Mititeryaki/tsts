@@ -45,10 +45,10 @@ async def _(event):
     input_str = event.pattern_match.group(1)
     as_text = False
     as_document = False
-    if input_str == "image":
-        as_document = False
-    elif input_str == "file":
+    if input_str == "file":
         as_document = True
+    elif input_str == "image":
+        as_document = False
     elif input_str == "text":
         as_text = True
     legendevent = await eor(event, "`Calculating my internet speed. Please wait!`")
@@ -73,6 +73,7 @@ async def _(event):
         if as_text:
             await legendevent.edit(
                 """`SpeedTest completed in {} seconds`
+
 `Download: {} (or) {} MB/s`
 `Upload: {} (or) {} MB/s`
 `Ping: {} ms`
@@ -92,11 +93,12 @@ async def _(event):
             await event.client.send_file(
                 event.chat_id,
                 speedtest_image,
-                caption="**SpeedTest** completed in {} seconds".format(ms),
+                caption=f"**SpeedTest** completed in {ms} seconds",
                 force_document=as_document,
                 reply_to=reply_msg_id,
                 allow_cache=False,
             )
+
             await event.delete()
     except Exception as exc:
         await legendevent.edit(
@@ -104,6 +106,7 @@ async def _(event):
 Download: {} (or) {} MB/s
 Upload: {} (or) {} MB/s
 Ping: {} ms
+
 __With the Following ERRORs__
 {}""".format(
                 ms,

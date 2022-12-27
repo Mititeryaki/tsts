@@ -22,40 +22,16 @@ menu_category = "extra"
         "examples": "{tr}poll Are you an early bird or a night owl ;Early bird ; Night owl",
     },
 )
-async def pollcreator(owopoll):
+async def pollcreator(legendpoll):
     "To create a poll"
-    reply_to_id = await reply_id(owopoll)
-    string = "".join(owopoll.text.split(maxsplit=1)[1:])
-    if not string:
-        options = Build_Poll(["Yah sure 😊✌️", "Nah 😏😕", "Whatever die sur 🥱🙄"])
-        try:
-            await owopoll.client.send_message(
-                owopoll.chat_id,
-                file=InputMediaPoll(
-                    poll=Poll(
-                        id=random.getrandbits(32),
-                        question="👆👆So do you guys agree with this?",
-                        answers=options,
-                    )
-                ),
-                reply_to=reply_to_id,
-            )
-            await owopoll.delete()
-        except PollOptionInvalidError:
-            await eor(
-                owopoll, "`A poll option used invalid data (the data may be too long).`"
-            )
-        except ForbiddenError:
-            await eor(owopoll, "`This chat has forbidden the polls`")
-        except exception as e:
-            await eor(owopoll, str(e))
-    else:
+    reply_to_id = await reply_id(legendpoll)
+    if string := "".join(legendpoll.text.split(maxsplit=1)[1:]):
         legendinput = string.split(";")
         if len(legendinput) > 2 and len(legendinput) < 12:
             options = Build_Poll(legendinput[1:])
             try:
-                await owopoll.client.send_message(
-                    owopoll.chat_id,
+                await legendpoll.client.send_message(
+                    legendpoll.chat_id,
                     file=InputMediaPoll(
                         poll=Poll(
                             id=random.getrandbits(32),
@@ -65,18 +41,43 @@ async def pollcreator(owopoll):
                     ),
                     reply_to=reply_to_id,
                 )
-                await owopoll.delete()
+                await legendpoll.delete()
             except PollOptionInvalidError:
                 await eor(
-                    owopoll,
+                    legendpoll,
                     "`A poll option used invalid data (the data may be too long).`",
                 )
             except ForbiddenError:
-                await eor(owopoll, "`This chat has forbidden the polls`")
+                await eor(legendpoll, "`This chat has forbidden the polls`")
             except Exception as e:
-                await eor(owopoll, str(e))
+                await eor(legendpoll, str(e))
         else:
             await eor(
-                owopoll,
+                legendpoll,
                 "Make sure that you used Correct syntax `.poll question ; option1 ; option2`",
             )
+
+    else:
+        options = Build_Poll(["Yah sure 😊✌️", "Nah 😏😕", "Whatever die sur 🥱🙄"])
+        try:
+            await legendpoll.client.send_message(
+                legendpoll.chat_id,
+                file=InputMediaPoll(
+                    poll=Poll(
+                        id=random.getrandbits(32),
+                        question="👆👆So do you guys agree with this?",
+                        answers=options,
+                    )
+                ),
+                reply_to=reply_to_id,
+            )
+            await legendpoll.delete()
+        except PollOptionInvalidError:
+            await eor(
+                legendpoll,
+                "`A poll option used invalid data (the data may be too long).`",
+            )
+        except ForbiddenError:
+            await eor(legendpoll, "`This chat has forbidden the polls`")
+        except Exception as e:
+            await eor(legendpoll, str(e))

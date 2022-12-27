@@ -1,4 +1,5 @@
-# Copyright
+# Copyright (C) 2020 BY - GitHub.com/code-rgb [TG - @deleteduser420]
+# ported to lol by @mrconfused (@krishna1709)
 
 import os
 

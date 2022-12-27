@@ -1,17 +1,32 @@
+# Random RGB Sticklet by @PhycoNinja13b
+# modified by @UniBorg
+# imported from ppe-remix by @heyworld & @DeletedUser420
+# modified by @mrconfused
+# pengin & gandhi Yato
+# modified & improved by @Legend-ai
 # RegEx by https://t.me/c/1220993104/500653 ( @SnapDragon7410 )
+
+import contextlib
 import io
 import os
 import random
-import re
 import textwrap
+import urllib
 
 from PIL import Image, ImageDraw, ImageFont
 from telethon.tl.types import InputMessagesFilterDocument
 
-from Legendbot import legend
+from Legendbot import Convert, legend
 
-from ..core.managers import eor
-from ..helpers.functions import deEmojify, hide_inlinebot, soft_deEmojify, waifutxt
+from ..core.managers import eod, eor
+from ..helpers.functions import (
+    clippy,
+    deEmojify,
+    hide_inlinebot,
+    higlighted_text,
+    soft_deEmojify,
+    waifutxt,
+)
 from ..helpers.utils import reply_id
 
 menu_category = "fun"
@@ -37,73 +52,19 @@ async def get_font_file(client, channel_id, search_kw=""):
 def file_checker(template):
     if not os.path.isdir("./temp"):
         os.mkdir("./temp")
-    tempname = "./temp/legend_temp.png"
+    tempname = "./temp/lol_temp.png"
     fontname = "./temp/ArialUnicodeMS.ttf"
     urllib.request.urlretrieve(template, tempname)
     if not os.path.exists(fontname):
         urllib.request.urlretrieve(
-            "https://github.com/ITS-LEGENDBOT/RESOURCES/blob/master/Resources/Spotify/ArialUnicodeMS.ttf?raw=true",
+            "https://github.com/LEGEND-AI/LEGENDUSERBOT-Resources/blob/master/Resources/Spotify/ArialUnicodeMS.ttf?raw=true",
             fontname,
         )
     return tempname, fontname
 
 
-EMOJI_PATTERN = re.compile(
-    "["
-    "\U0001F1E0-\U0001F1FF"  # flags (iOS)
-    "\U0001F300-\U0001F5FF"  # symbols & pictographs
-    "\U0001F600-\U0001F64F"  # emoticons
-    "\U0001F680-\U0001F6FF"  # transport & map symbols
-    "\U0001F700-\U0001F77F"  # alchemical symbols
-    "\U0001F780-\U0001F7FF"  # Geometric Shapes Extended
-    "\U0001F800-\U0001F8FF"  # Supplemental Arrows-C
-    "\U0001F900-\U0001F9FF"  # Supplemental Symbols and Pictographs
-    "\U0001FA00-\U0001FA6F"  # Chess Symbols
-    "\U0001FA70-\U0001FAFF"  # Symbols and Pictographs Extended-A
-    "\U00002702-\U000027B0"  # Dingbats
-    "]+"
-)
-
-
-def dpEmojify(inputString: str) -> str:
-    """Remove emojis and other non-safe characters from string"""
-    return re.sub(EMOJI_PATTERN, "", inputString)
-
-
 @legend.legend_cmd(
-    pattern="waifu(?:\s|$)([\s\S]*)",
-    command=("waifu", menu_category),
-    info={
-        "header": "Anime that makes your writing fun.",
-        "usage": "{tr}waifu <text>",
-        "examples": "{tr}waifu hello",
-    },
-)
-async def waifu(animu):
-    # """Creates random anime sticker!"""
-
-    text = animu.pattern_match.group(1)
-    if not text:
-        if animu.is_reply:
-            text = (await animu.get_reply_message()).message
-        else:
-            await animu.edit("`You haven't written any article, Waifu is going away.`")
-            return
-    animus = [1, 3, 7, 9, 13, 22, 34, 35, 36, 37, 43, 44, 45, 52, 53, 55]
-    sticcers = await bot.inline_query(
-        "stickerizerbot", f"#{random.choice(animus)}{(dpEmojify(text))}"
-    )
-    await sticcers[0].click(
-        animu.chat_id,
-        reply_to=animu.reply_to_msg_id,
-        silent=True if animu.is_reply else False,
-        hide_via=True,
-    )
-    await animu.delete()
-
-
-@legend.legend_cmd(
-    pattern="sttxt(?:\s|$)([\s\S]*)",
+    pattern="(?:st|sttxt)(?:\s|$)([\s\S]*)",
     command=("sttxt", menu_category),
     info={
         "header": "Anime that makes your writing fun.",
@@ -158,7 +119,7 @@ async def sticklet(event):
             sticktext = reply_message.message
         else:
             return await eor(event, "need something, hmm")
-    # delete the Legendbot command,
+    # delete the userbot command,
     # i don't know why this is required
     await event.delete()
     sticktext = deEmojify(sticktext)
@@ -169,7 +130,7 @@ async def sticklet(event):
     image = Image.new("RGBA", (512, 512), (255, 255, 255, 0))
     draw = ImageDraw.Draw(image)
     fontsize = 230
-    FONT_FILE = await get_font_file(event.client, "@Legend_Fonts", font_file_name)
+    FONT_FILE = await get_font_file(event.client, "@legendfonts", font_file_name)
     font = ImageFont.truetype(FONT_FILE, size=fontsize)
     while draw.multiline_textsize(sticktext, font=font) > (512, 512):
         fontsize -= 3
@@ -179,21 +140,19 @@ async def sticklet(event):
         ((512 - width) / 2, (512 - height) / 2), sticktext, font=font, fill=(R, G, B)
     )
     image_stream = io.BytesIO()
-    image_stream.name = "LegendUserBot.webp"
+    image_stream.name = "catLegendbot.webp"
     image.save(image_stream, "WebP")
     image_stream.seek(0)
     # finally, reply the sticker
     await event.client.send_file(
         event.chat_id,
         image_stream,
-        caption="legend's Sticklet",
+        caption="lol's Sticklet",
         reply_to=reply_to_id,
     )
     # cleanup
-    try:
+    with contextlib.suppress(BaseException):
         os.remove(FONT_FILE)
-    except BaseException:
-        pass
 
 
 @legend.legend_cmd(
@@ -282,24 +241,361 @@ async def glax(event):
 
 
 @legend.legend_cmd(
-    pattern="googl(?:\s|$)([\s\S]*)",
-    command=("googl", menu_category),
+    pattern="(|b)quby(?:\s|$)([\s\S]*)",
+    command=("quby", menu_category),
     info={
-        "header": "Search in google animation",
-        "usage": "{tr}googl <text/reply to msg>",
-        "examples": "{tr}googl Legenduserbot",
+        "header": "Make doge say anything.",
+        "flags": {
+            "b": "Give the sticker on background.",
+        },
+        "usage": [
+            "{tr}quby <text/reply to msg>",
+            "{tr}bquby <text/reply to msg>",
+        ],
+        "examples": [
+            "{tr}quby Gib money",
+            "{tr}bquby Gib money",
+        ],
     },
 )
-async def twt(event):
-    "Search in google animation."
+async def quby(event):
+    "Make a cool quby text sticker"
+    cmd = event.pattern_match.group(1).lower()
+    text = event.pattern_match.group(2)
+    reply_to_id = await reply_id(event)
+    if not text and event.is_reply:
+        text = (await event.get_reply_message()).message
+    if not text:
+        return await eod(event, "__What is quby supposed to say? Give some text.__")
+    await eod(event, "`Wait, processing.....`")
+    temp_name, fontname = file_checker(
+        "https://graph.org/file/09f4df5a129758a2e1c9c.jpg"
+    )
+    lines = 3
+    text = soft_deEmojify(text)
+    if len(text) < 80:
+        font = 60
+        wrap = 1.3
+        position = (45, 0)
+    else:
+        font = 50
+        wrap = 1
+        position = (-70, 0)
+    file, txt = higlighted_text(
+        temp_name,
+        text,
+        text_wrap=wrap,
+        font_name=fontname,
+        font_size=font,
+        linespace="+2",
+        position=position,
+        lines=lines,
+        album=True,
+        album_limit=1,
+        stroke_width=1,
+    )
+    if len(txt) >= lines:
+        for x in range(lines):
+            text = text.replace(txt[x], "")
+        file, _ = higlighted_text(
+            file[0],
+            text,
+            text_wrap=wrap,
+            font_name=fontname,
+            font_size=font,
+            linespace="+2",
+            position=position,
+            direction="upwards",
+            lines=1,
+            album=True,
+            album_limit=1,
+            stroke_width=1,
+        )
+    if cmd == "b":
+        lol = (
+            await Convert.to_sticker(event, file[0], file="quby.webp", noedits=True)
+        )[1]
+        await event.client.send_file(
+            event.chat_id, lol, reply_to=reply_to_id, force_document=False
+        )
+    else:
+        await clippy(event.client, file[0], event.chat_id, reply_to_id)
+    await event.delete()
+    for files in (temp_name, file[0]):
+        if files and os.path.exists(files):
+            os.remove(files)
+
+
+@legend.legend_cmd(
+    pattern="(|b)(blob|kirby)(?:\s|$)([\s\S]*)",
+    command=("blob", menu_category),
+    info={
+        "header": "Give the sticker on background.",
+        "flags": {
+            "b": "To create knife sticker transparent.",
+        },
+        "usage": [
+            "{tr}blob/kirby <text/reply to msg>",
+            "{tr}bblob/bkirby <text/reply to msg>",
+        ],
+        "examples": [
+            "{tr}blob Gib money",
+            "{tr}bblob Gib money",
+        ],
+    },
+)
+async def knife(event):
+    "Make a blob knife text sticker"
+    cmd = event.pattern_match.group(1).lower()
+    text = event.pattern_match.group(3)
+    reply_to_id = await reply_id(event)
+    if not text and event.is_reply:
+        text = (await event.get_reply_message()).message
+    if not text:
+        return await eod(event, "__What is blob supposed to say? Give some text.__")
+    await eod(event, "`Wait, processing.....`")
+    temp_name, fontname = file_checker(
+        "https://graph.org/file/2188367c8c5f43c36aa59.jpg"
+    )
+    text = soft_deEmojify(text)
+    if len(text) < 50:
+        font = 90
+        wrap = 2
+        position = (250, -450)
+    else:
+        font = 60
+        wrap = 1.4
+        position = (150, 500)
+    file, _ = higlighted_text(
+        temp_name,
+        text,
+        text_wrap=wrap,
+        font_name=fontname,
+        font_size=font,
+        linespace="-5",
+        position=position,
+        direction="upwards",
+    )
+    if cmd == "b":
+        lol = (
+            await Convert.to_sticker(event, file[0], file="knife.webp", noedits=True)
+        )[1]
+        await event.client.send_file(
+            event.chat_id, lol, reply_to=reply_to_id, force_document=False
+        )
+    else:
+        await clippy(event.client, file[0], event.chat_id, reply_to_id)
+    await event.delete()
+    for files in (temp_name, file[0]):
+        if files and os.path.exists(files):
+            os.remove(files)
+
+
+@legend.legend_cmd(
+    pattern="doge(?:\s|$)([\s\S]*)",
+    command=("doge", menu_category),
+    info={
+        "header": "Make doge say anything.",
+        "usage": "{tr}doge <text/reply to msg>",
+        "examples": "{tr}doge Gib money",
+    },
+)
+async def doge(event):
+    "Make a cool doge text sticker"
     text = event.pattern_match.group(1)
     reply_to_id = await reply_id(event)
-    bot_name = "@GooglaxBot"
+    if not text and event.is_reply:
+        text = (await event.get_reply_message()).message
     if not text:
-        if event.is_reply:
-            text = (await event.get_reply_message()).message
-        else:
-            return await eod(event, "__What am I supposed to search? Give some text.__")
+        return await eod(event, "__What is doge supposed to say? Give some text.__")
+    await eod(event, "`Wait, processing.....`")
     text = soft_deEmojify(text)
+    temp_name, fontname = file_checker(
+        "https://graph.org/file/6f621b9782d9c925bd6c4.jpg"
+    )
+    font, wrap, lines, ls = (
+        (90, 1.9, 5, "-75") if len(text) < 140 else (70, 1.3, 6, "-55")
+    )
+    file, txt = higlighted_text(
+        temp_name,
+        text,
+        text_wrap=wrap,
+        font_name=fontname,
+        font_size=font,
+        linespace=ls,
+        position=(-20, 0),
+        align="left",
+        background="white",
+        foreground="black",
+        transparency=0,
+        lines=lines,
+        album=True,
+        album_limit=1,
+        stroke_width=1,
+        stroke_fill="black",
+    )
+    if len(txt) >= lines:
+        for x in range(lines):
+            text = text.replace(txt[x], "")
+        file, _ = higlighted_text(
+            file[0],
+            text,
+            text_wrap=wrap + 2,
+            font_name=fontname,
+            font_size=font,
+            linespace=ls,
+            position=(-20, 480),
+            align="left",
+            background="white",
+            foreground="black",
+            transparency=0,
+            lines=lines,
+            album=True,
+            album_limit=1,
+            stroke_width=1,
+            stroke_fill="black",
+        )
+    lol = (await Convert.to_sticker(event, file[0], file="doge.webp", noedits=True))[1]
+    await event.client.send_file(
+        event.chat_id, lol, reply_to=reply_to_id, force_document=False
+    )
     await event.delete()
-    await hide_inlinebot(event.client, bot_name, text, event.chat_id, reply_to_id)
+    for files in (temp_name, file[0]):
+        if files and os.path.exists(files):
+            os.remove(files)
+
+
+@legend.legend_cmd(
+    pattern="(|h)penguin(?:\s|$)([\s\S]*)",
+    command=("penguin", menu_category),
+    info={
+        "header": "To make penguin meme sticker. ",
+        "flags": {
+            "h": "To create penguin sticker with highligted text.",
+        },
+        "usage": [
+            "{tr}penguin <text/reply to msg>",
+            "{tr}hpenguin <text/reply to msg>",
+        ],
+        "examples": [
+            "{tr}penguin Shut up Rash",
+            "{tr}hpenguin Shut up Rash",
+        ],
+    },
+)
+async def penguin(event):
+    "Make a cool penguin text sticker"
+    cmd = event.pattern_match.group(1).lower()
+    text = event.pattern_match.group(2)
+    reply_to_id = await reply_id(event)
+    if not text and event.is_reply:
+        text = (await event.get_reply_message()).message
+    if not text:
+        return await eod(event, "What is penguin supposed to say? Give some text.")
+    await eod(event, "Wait, processing.....")
+    temp_name, fontname = file_checker(
+        "https://graph.org/file/ee1fc91bbaef2cc808c7c.png"
+    )
+    text = soft_deEmojify(text)
+    font, wrap, lines = (90, 4, 5) if len(text) < 50 else (70, 4.5, 7)
+    bg, fg, alpha, ls, lines = (
+        ("black", "white", 255, "-30", lines - 2)
+        if cmd == "h"
+        else ("white", "black", 0, "-60", lines)
+    )
+    file, _ = higlighted_text(
+        temp_name,
+        text,
+        text_wrap=wrap,
+        font_name=fontname,
+        font_size=font,
+        linespace=ls,
+        position=(0, 10),
+        align="left",
+        background=bg,
+        foreground=fg,
+        transparency=alpha,
+        lines=lines,
+        album=True,
+        album_limit=1,
+        stroke_width=1,
+        stroke_fill=fg,
+    )
+    lol = (await Convert.to_sticker(event, file[0], file="penguin.webp", noedits=True))[
+        1
+    ]
+    await event.client.send_file(
+        event.chat_id, lol, reply_to=reply_to_id, force_document=False
+    )
+    await event.delete()
+    for files in (temp_name, file[0]):
+        if files and os.path.exists(files):
+            os.remove(files)
+
+
+@legend.legend_cmd(
+    pattern="(|h)gandhi(?:\s|$)([\s\S]*)",
+    command=("gandhi", menu_category),
+    info={
+        "header": "Make gandhi text sticker.",
+        "flags": {
+            "h": "To create gandhi sticker with highligted text.",
+        },
+        "usage": [
+            "{tr}gandhi <text/reply to msg>",
+            "{tr}hgandhi <text/reply to msg>",
+        ],
+        "examples": [
+            "{tr}gandhi Nathu Killed me",
+            "{tr}hgandhi Nathu Killed me",
+        ],
+    },
+)
+async def gandhi(event):
+    "Make a cool gandhi text sticker"
+    cmd = event.pattern_match.group(1).lower()
+    text = event.pattern_match.group(2)
+    reply_to_id = await reply_id(event)
+    if not text and event.is_reply:
+        text = (await event.get_reply_message()).message
+    if not text:
+        return await eod(event, "What is gandhi supposed to write? Give some text.")
+    await eod(event, "Wait, processing.....")
+    temp_name, fontname = file_checker(
+        "https://graph.org/file/3bebc56ee82cce4f300ce.jpg"
+    )
+    text = soft_deEmojify(text)
+    font, wrap, lines = (90, 3, 5) if len(text) < 75 else (70, 2.8, 7)
+    bg, fg, alpha, ls, lines = (
+        ("white", "black", 255, "-30", lines - 1)
+        if cmd == "h"
+        else ("black", "white", 0, "-60", lines)
+    )
+    file, _ = higlighted_text(
+        temp_name,
+        text,
+        text_wrap=wrap,
+        font_name=fontname,
+        font_size=font,
+        linespace=ls,
+        position=(470, 10),
+        align="center",
+        background=bg,
+        foreground=fg,
+        transparency=alpha,
+        lines=lines,
+        album=True,
+        album_limit=1,
+        stroke_width=1,
+        stroke_fill=fg,
+    )
+    lol = (await Convert.to_sticker(event, file[0], file="gandhi.webp", noedits=True))[
+        1
+    ]
+    await event.client.send_file(
+        event.chat_id, lol, reply_to=reply_to_id, force_document=False
+    )
+    await event.delete()
+    for files in (temp_name, file[0]):
+        if files and os.path.exists(files):
+            os.remove(files)

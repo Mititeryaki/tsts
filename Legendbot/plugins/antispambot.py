@@ -1,5 +1,5 @@
-#    Copyright (C) 2020  sandeep.n(π.$)
-# baning spmmers plugin for LegendUserBot by @LEGEND_K_BOY
+#    Copyright (C) 2020  krishna.n(π.$)
+# baning spmmers plugin for legenduserbot by @krishna1709
 # included both cas(combot antispam service) and spamwatch (need to add more feaututres)
 
 from requests import get
@@ -9,7 +9,7 @@ from telethon.tl.types import ChannelParticipantsAdmins
 from telethon.utils import get_display_name
 
 from ..Config import Config
-from ..sql_helper.gban_sql_helper import gbanned, is_gbanned
+from ..sql_helper.gban_sql_helper import get_gbanuser, is_gbanned
 from ..utils import is_admin
 from . import BOTLOG, BOTLOG_CHATID, eor, legend, logging, spamwatch
 
@@ -19,6 +19,7 @@ if Config.ANTISPAMBOT_BAN:
 
     @legend.on(ChatAction())
     async def anti_spambot(event):  # sourcery no-metrics
+        # sourcery skip: low-code-quality, use-fstring-for-formatting
         if not event.user_joined and not event.user_added:
             return
         user = await event.get_user()
@@ -42,7 +43,7 @@ if Config.ANTISPAMBOT_BAN:
         if ignore:
             return
         if is_gbanned(user.id):
-            legendgban = gbanned(user.id)
+            legendgban = get_gbanuser(user.id)
             if legendgban.reason:
                 hmm = await event.reply(
                     f"[{user.first_name}](tg://user?id={user.id}) was gbanned by you for the reason `{legendgban.reason}`"
@@ -72,7 +73,7 @@ if Config.ANTISPAMBOT_BAN:
                     LOGS.info(e)
         if not legendbanned:
             try:
-                casurl = "https://api.cas.chat/check?user_id={}".format(user.id)
+                casurl = f"https://api.cas.chat/check?user_id={user.id}"
                 data = get(casurl).json()
             except Exception as e:
                 LOGS.info(e)
@@ -107,7 +108,7 @@ if Config.ANTISPAMBOT_BAN:
     info={
         "header": "To check the users who are banned in cas",
         "description": "When you use this cmd it will check every user in the group where you used whether \
-        he is banned in cas (combat antispam service) and will show there names if they are typeged in cas",
+        he is banned in cas (combat antispam service) and will show there names if they are flagged in cas",
         "usage": "{tr}cascheck",
     },
     groups_only=True,
@@ -129,21 +130,20 @@ async def caschecker(event):
         async for user in event.client.iter_participants(info.id):
             if banchecker(user.id):
                 cas_count += 1
-                if not user.deleted:
-                    banned_users += f"{user.first_name}-`{user.id}`\n"
-                else:
-                    banned_users += f"Deleted Account `{user.id}`\n"
+                banned_users += (
+                    f"Deleted Account `{user.id}`\n"
+                    if user.deleted
+                    else f"{user.first_name}-`{user.id}`\n"
+                )
             members_count += 1
-        text = "**Warning!** Found `{}` of `{}` users are CAS Banned:\n".format(
-            cas_count, members_count
-        )
+        text = f"**Warning!** Found `{cas_count}` of `{members_count}` users are CAS Banned:\n"
         text += banned_users
         if not cas_count:
             text = "No CAS Banned users found!"
-    except ChatAdminRequiredError:
+    except ChatAdminRequiredError as carerr:
         await legendevent.edit("`CAS check failed: Admin privileges are required`")
         return
-    except BaseException:
+    except BaseException as be:
         await legendevent.edit("`CAS check failed`")
         return
     await legendevent.edit(text)
@@ -160,7 +160,7 @@ async def caschecker(event):
     },
     groups_only=True,
 )
-async def spamchecker(event):
+async def caschecker(event):
     "Searches for spamwatch federation banned users in group and shows you the list"
     text = ""
     legendevent = await eor(
@@ -178,23 +178,23 @@ async def spamchecker(event):
         async for user in event.client.iter_participants(info.id):
             if spamchecker(user.id):
                 cas_count += 1
-                if not user.deleted:
-                    banned_users += f"{user.first_name}-`{user.id}`\n"
-                else:
-                    banned_users += f"Deleted Account `{user.id}`\n"
+                banned_users += (
+                    f"Deleted Account `{user.id}`\n"
+                    if user.deleted
+                    else f"{user.first_name}-`{user.id}`\n"
+                )
+
             members_count += 1
-        text = "**Warning! **Found `{}` of `{}` users are spamwatch Banned:\n".format(
-            cas_count, members_count
-        )
+        text = f"**Warning! **Found `{cas_count}` of `{members_count}` users are spamwatch Banned:\n"
         text += banned_users
         if not cas_count:
             text = "No spamwatch Banned users found!"
-    except ChatAdminRequiredError:
+    except ChatAdminRequiredError as carerr:
         await legendevent.edit(
             "`spamwatch check failed: Admin privileges are required`"
         )
         return
-    except BaseException:
+    except BaseException as be:
         await legendevent.edit("`spamwatch check failed`")
         return
     await legendevent.edit(text)
@@ -202,7 +202,7 @@ async def spamchecker(event):
 
 def banchecker(user_id):
     try:
-        casurl = "https://api.cas.chat/check?user_id={}".format(user_id)
+        casurl = f"https://api.cas.chat/check?user_id={user.id}"
         data = get(casurl).json()
     except Exception as e:
         LOGS.info(e)

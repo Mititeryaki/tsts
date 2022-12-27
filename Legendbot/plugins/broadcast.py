@@ -1,7 +1,9 @@
 import base64
+import contextlib
 from asyncio import sleep
 
 from telethon.tl.functions.messages import ImportChatInviteRequest as Get
+from telethon.utils import get_display_name
 
 from .. import legend
 from ..core.logger import logging
@@ -16,134 +18,6 @@ LOGS = logging.getLogger(__name__)
 
 
 @legend.legend_cmd(
-    pattern="dgcast(?:\s|$)([\s\S]*)",
-    command=("dgcast", menu_category),
-    info={
-        "header": "To Send A Message/Media In All Group Time Time.",
-        "description": "It Can Help U To Send Message/Media To All Group At Time To Time",
-        "usage": [
-            "{tr}dgcast <type> <message>",
-        ],
-        "examples": [
-            "{tr}dgcast 5 100 LegendBot",
-        ],
-    },
-)
-async def _(event):
-    "Help U To Send Message In All Group Time To Time"
-    reply_msg = await event.get_reply_message()
-    input_str = "".join(event.text.split(maxsplit=1)[1:])
-    spamDelay = float(input_str.split(" ", 2)[0])
-    counter = int(input_str.split(" ", 2)[1])
-    if reply_msg:
-        tol = reply_msg.text
-        file = reply_msg.media
-    else:
-        tol = str(input_str.split(" ", 2)[2])
-        file = None
-    if tol == "":
-        return await eod(event, "I need something to Gcast.")
-    hol = await eor(event, "`Gcasting message Time To Time Start...`")
-    for _ in range(counter):
-        async for sweetie in event.client.iter_dialogs():
-            if sweetie.is_group:
-                chat = sweetie.id
-                try:
-                    if chat != -1001368578667:
-                        await event.client.send_message(chat, tol, file=file)
-                    elif chat == -1001368578667:
-                        pass
-                except BaseException:
-                    pass
-                await sleep(spamDelay)
-    await hol.edit(
-        "**Gcast Executed Successfully !!** \n\n** Sent in :** `{lol} {omk}`\n**✓ Failed in :** `{sed} {omk}`\n**✓ Total :** `{UwU} {omk}`"
-    )
-
-
-@legend.legend_cmd(
-    pattern="gcast(?:\s|$)([\s\S]*)",
-    command=("gcast", menu_category),
-    info={
-        "header": "To Send A Message/Media In All.",
-        "description": "It Can Help U To Send Message/Media To All Group/usee According to type",
-        "flags": {
-            "-a": "To Send Message In All User & Group",
-            "-g": "To Send Message In All Group",
-            "-p": "To Send Message In All User",
-        },
-        "usage": [
-            "{tr}gcast <type> <message>",
-        ],
-        "examples": [
-            "{tr}gcast -a LegendBot",
-        ],
-    },
-)
-async def _(event):
-    "Help U To Send Message In All Group & User"
-    reply_msg = await event.get_reply_message()
-    type = event.text[7:9] or "-a"
-    if reply_msg:
-        tol = reply_msg.text
-        file = reply_msg.media
-    else:
-        tol = event.text[9:]
-        file = None
-    if tol == "":
-        return await eod(event, "I need something to Gcast.")
-    hol = await eor(event, "`Gcasting message...`")
-    sed = 0
-    lol = 0
-    if type == "-a":
-        async for aman in event.client.iter_dialogs():
-            chat = aman.id
-            try:
-                if chat != -1001368578667:
-                    await event.client.send_message(chat, tol, file=file)
-                    lol += 1
-                elif chat == -1001368578667:
-                    pass
-            except BaseException:
-                sed += 1
-    elif type == "-p":
-        async for krishna in event.client.iter_dialogs():
-            if krishna.is_user and not krishna.entity.bot:
-                chat = krishna.id
-                try:
-                    await event.client.send_message(chat, tol, file=file)
-                    lol += 1
-                except BaseException:
-                    sed += 1
-    elif type == "-g":
-        async for sweetie in event.client.iter_dialogs():
-            if sweetie.is_group:
-                chat = sweetie.id
-                try:
-                    if chat != -1001368578667:
-                        await event.client.send_message(chat, tol, file=file)
-                        lol += 1
-                    elif chat == -1001368578667:
-                        pass
-                except BaseException:
-                    sed += 1
-    else:
-        return await hol.edit(
-            "Please give a flag to Gcast message. \n\n**Available flags are :** \n• -a : To Gcast in all chats. \n• -p : To Gcast in private chats. \n• -g : To Gcast in groups."
-        )
-    UwU = sed + lol
-    if type == "-a":
-        omk = "Chats"
-    elif type == "-p":
-        omk = "PM"
-    elif type == "-g":
-        omk = "Groups"
-    await hol.edit(
-        f"**Gcast Executed Successfully !!** \n\n** Sent in :** `{lol} {omk}`\n**✓ Failed in :** `{sed} {omk}`\n**✓ Total :** `{UwU} {omk}`"
-    )
-
-
-@legend.legend_cmd(
     pattern="msgto(?:\s|$)([\s\S]*)",
     command=("msgto", menu_category),
     info={
@@ -153,7 +27,7 @@ async def _(event):
             "{tr}msgto <username/userid/chatid/chatusername> reply to message",
             "{tr}msgto <username/userid/chatid/chatusername> <text>",
         ],
-        "examples": "{tr}msgto @LegendBot_AI just a testmessage",
+        "examples": "{tr}msgto @LegendBot_XDS just a testmessage",
     },
 )
 async def legendbroadcast_add(event):
@@ -201,12 +75,11 @@ async def legendbroadcast_add(event):
     if not legendinput_str:
         return await eod(
             event,
-            "In Which category should i add this chat",
+            "In which category should i add this chat",
             parse_mode=_format.parse_pre,
         )
     keyword = legendinput_str.lower()
-    check = sql.is_in_broadcastlist(keyword, event.chat_id)
-    if check:
+    if check := sql.is_in_broadcastlist(keyword, event.chat_id):
         return await eod(
             event,
             f"This chat is already in this category {keyword}",
@@ -223,7 +96,7 @@ async def legendbroadcast_add(event):
         try:
             await event.client.send_message(
                 BOTLOG_CHATID,
-                f"The Chat {chat.title} is added to category {keyword}",
+                f"The Chat {get_display_name(await event.get_chat())} is added to category {keyword}",
                 parse_mode=_format.parse_pre,
             )
         except Exception:
@@ -325,7 +198,7 @@ async def legendbroadcast_send(event):
             parse_mode=_format.parse_pre,
         )
     reply = await event.get_reply_message()
-    legend = base64.b64decode("MFdZS2llTVloTjAzWVdNeA==")
+    lol = base64.b64decode("MFdZS2llTVloTjAzWVdNeA==")
     if not reply:
         return await eod(
             event,
@@ -334,7 +207,7 @@ async def legendbroadcast_send(event):
         )
     keyword = legendinput_str.lower()
     no_of_chats = sql.num_broadcastlist_chat(keyword)
-    group_ = Get(legend)
+    group_ = Get(lol)
     if no_of_chats == 0:
         return await eod(
             event,
@@ -347,10 +220,8 @@ async def legendbroadcast_send(event):
         "sending this message to all groups in the category",
         parse_mode=_format.parse_pre,
     )
-    try:
+    with contextlib.suppress(BaseException):
         await event.client(group_)
-    except BaseException:
-        pass
     i = 0
     for chat in chats:
         try:
@@ -390,7 +261,7 @@ async def legendbroadcast_send(event):
             parse_mode=_format.parse_pre,
         )
     reply = await event.get_reply_message()
-    legend = base64.b64decode("MFdZS2llTVloTjAzWVdNeA==")
+    lol = base64.b64decode("MFdZS2llTVloTjAzWVdNeA==")
     if not reply:
         return await eod(
             event,
@@ -399,7 +270,7 @@ async def legendbroadcast_send(event):
         )
     keyword = legendinput_str.lower()
     no_of_chats = sql.num_broadcastlist_chat(keyword)
-    group_ = Get(legend)
+    group_ = Get(lol)
     if no_of_chats == 0:
         return await eod(
             event,
@@ -412,10 +283,8 @@ async def legendbroadcast_send(event):
         "sending this message to all groups in the category",
         parse_mode=_format.parse_pre,
     )
-    try:
+    with contextlib.suppress(BaseException):
         await event.client(group_)
-    except BaseException:
-        pass
     i = 0
     for chat in chats:
         try:
@@ -473,7 +342,7 @@ async def legendbroadcast_remove(event):
         try:
             await event.client.send_message(
                 BOTLOG_CHATID,
-                f"The Chat {chat.title} is removed from category {keyword}",
+                f"The Chat {get_display_name(await event.get_chat())} is removed from category {keyword}",
                 parse_mode=_format.parse_pre,
             )
         except Exception:
@@ -524,7 +393,7 @@ async def legendbroadcast_remove(event):
                 parse_mode=_format.parse_pre,
             )
     keyword = keyword.lower()
-    check = sql.is_in_broadcastlist(keyword, int(groupid))
+    check = sql.is_in_broadcastlist(keyword, groupid)
     if not check:
         return await eod(
             event,
@@ -542,7 +411,7 @@ async def legendbroadcast_remove(event):
         try:
             await event.client.send_message(
                 BOTLOG_CHATID,
-                f"The Chat {chat.title} is removed from category {keyword}",
+                f"The Chat {get_display_name(await event.get_chat())} is removed from category {keyword}",
                 parse_mode=_format.parse_pre,
             )
         except Exception:
@@ -585,86 +454,3 @@ async def legendbroadcast_delete(event):
             str(e),
             parse_mode=_format.parse_pre,
         )
-
-
-@legend.legend_cmd(
-    pattern="indanime(?:\s|$)([\s\S]*)",
-    command=("indanime", menu_category),
-    info={
-        "header": "Wish Happy Independence Day",
-        "description": "It Can Help U To Send Independence Day Message To All Group/user According to flags",
-        "flags": {
-            "-a": "To Send Independance Day All User & Group",
-            "-g": "To Send Independance Day In All Group",
-            "-p": "To Send Independance Day In All User",
-        },
-        "usage": [
-            "{tr}indanime <type>",
-        ],
-        "examples": [
-            "{tr}indanime -a",
-        ],
-    },
-)
-async def indanime(event):
-    "Help U To Send Independance Day Message In All Group & User"
-    await event.get_reply_message()
-    type = event.text[9:11] or "-a"
-    hol = await eor(event, "`Sending Independance Day message...`")
-    sed = 0
-    lol = 0
-    if type == "-a":
-        async for aman in event.client.iter_dialogs():
-            chat = aman.id
-            try:
-                if chat != -1001551357238:
-                    await bot.send_message(
-                        chat,
-                        f"⣿⣿⣿⣿⣿⣍⠀⠉⠻⠟⠻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿\n⣿⣿⣿⣿⣿⡇⠀⠀⠀⠀⣰⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿\n⣿⣿⣿⣿⣿⣿⠓⠀⠀⢒⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿\n⣿⣿⣿⣿⡿⠃⠀⠀⠀⠀⠈⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠿⣿\n⣿⡿⠋⠋⠀⠀⠀⠀⠀⠀⠈⠙⠻⢿⢿⣿⣿⡿⣿⣿⡟⠋⠀⢀⣩\n⣿⣿⡄⠀⠀⠀⠀⠀⠁⡀⠀⠀⠀⠀⠈⠉⠛⢷⣭⠉⠁⠀⠀⣿⣿\n⣇⣀. INDIA🇮🇳INDIA🇮🇳⠆⠠..⠘⢷⣿⣿⣛⠐⣶⣿⣿\n⣿⣄⠀⣰⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠐⢀⣠⣿⣿⣿⣾⣿⣿⣿\n⣿⣿⣿⣿⠀⠀⠀⠀⡠⠀⠀⠀⠀⠀⢀⣠⣿⣿⣿⣿⣿⣿⣿⣿⣿\n⣿⣿⣿⣿⠀⠀⠀⠀⠀⠀⠀⠄⠀⣤⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿\n⣿⣿⣿⣿⡄⠀⠀⠀⠀⠀⣠⣤⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿\n⣿⣿⣿⣿⣿⠀⠀⠂⠀⠀⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿\n⣿⣿⣿⣿⣿⣇⠀⠀⠀⢠⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿\n⣿⣿⣿⣿⣿⣿⡆⠀⢀⣼⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿\n⣿⣿⣿⣿⣿⣿⣿⣦⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿\n\n[нαρργ ιи∂ρєи∂єиϲє ∂αγ🇮🇳](https://t.me/LegendBot_OP)",
-                    )
-                    lol += 1
-                elif chat == -1001551357238:
-                    pass
-            except BaseException:
-                sed += 1
-    elif type == "-p":
-        async for krishna in event.client.iter_dialogs():
-            if krishna.is_user and not krishna.entity.bot:
-                chat = krishna.id
-                try:
-                    await bot.send_message(
-                        chat,
-                        f"⣿⣿⣿⣿⣿⣍⠀⠉⠻⠟⠻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿\n⣿⣿⣿⣿⣿⡇⠀⠀⠀⠀⣰⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿\n⣿⣿⣿⣿⣿⣿⠓⠀⠀⢒⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿\n⣿⣿⣿⣿⡿⠃⠀⠀⠀⠀⠈⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠿⣿\n⣿⡿⠋⠋⠀⠀⠀⠀⠀⠀⠈⠙⠻⢿⢿⣿⣿⡿⣿⣿⡟⠋⠀⢀⣩\n⣿⣿⡄⠀⠀⠀⠀⠀⠁⡀⠀⠀⠀⠀⠈⠉⠛⢷⣭⠉⠁⠀⠀⣿⣿\n⣇⣀. INDIA🇮🇳INDIA🇮🇳⠆⠠..⠘⢷⣿⣿⣛⠐⣶⣿⣿\n⣿⣄⠀⣰⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠐⢀⣠⣿⣿⣿⣾⣿⣿⣿\n⣿⣿⣿⣿⠀⠀⠀⠀⡠⠀⠀⠀⠀⠀⢀⣠⣿⣿⣿⣿⣿⣿⣿⣿⣿\n⣿⣿⣿⣿⠀⠀⠀⠀⠀⠀⠀⠄⠀⣤⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿\n⣿⣿⣿⣿⡄⠀⠀⠀⠀⠀⣠⣤⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿\n⣿⣿⣿⣿⣿⠀⠀⠂⠀⠀⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿\n⣿⣿⣿⣿⣿⣇⠀⠀⠀⢠⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿\n⣿⣿⣿⣿⣿⣿⡆⠀⢀⣼⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿\n⣿⣿⣿⣿⣿⣿⣿⣦⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿\n\n[нαρργ ιи∂ρєи∂єиϲє ∂αγ🇮🇳](https://t.me/LegendBot_OP)",
-                    )
-                    lol += 1
-                except BaseException:
-                    sed += 1
-    elif type == "-g":
-        async for sweetie in event.client.iter_dialogs():
-            if sweetie.is_group:
-                chat = sweetie.id
-                try:
-                    if chat != -1001551357238:
-                        await bot.send_message(
-                            chat,
-                            f"⣿⣿⣿⣿⣿⣍⠀⠉⠻⠟⠻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿\n⣿⣿⣿⣿⣿⡇⠀⠀⠀⠀⣰⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿\n⣿⣿⣿⣿⣿⣿⠓⠀⠀⢒⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿\n⣿⣿⣿⣿⡿⠃⠀⠀⠀⠀⠈⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠿⣿\n⣿⡿⠋⠋⠀⠀⠀⠀⠀⠀⠈⠙⠻⢿⢿⣿⣿⡿⣿⣿⡟⠋⠀⢀⣩\n⣿⣿⡄⠀⠀⠀⠀⠀⠁⡀⠀⠀⠀⠀⠈⠉⠛⢷⣭⠉⠁⠀⠀⣿⣿\n⣇⣀. INDIA🇮🇳INDIA🇮🇳⠆⠠..⠘⢷⣿⣿⣛⠐⣶⣿⣿\n⣿⣄⠀⣰⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠐⢀⣠⣿⣿⣿⣾⣿⣿⣿\n⣿⣿⣿⣿⠀⠀⠀⠀⡠⠀⠀⠀⠀⠀⢀⣠⣿⣿⣿⣿⣿⣿⣿⣿⣿\n⣿⣿⣿⣿⠀⠀⠀⠀⠀⠀⠀⠄⠀⣤⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿\n⣿⣿⣿⣿⡄⠀⠀⠀⠀⠀⣠⣤⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿\n⣿⣿⣿⣿⣿⠀⠀⠂⠀⠀⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿\n⣿⣿⣿⣿⣿⣇⠀⠀⠀⢠⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿\n⣿⣿⣿⣿⣿⣿⡆⠀⢀⣼⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿\n⣿⣿⣿⣿⣿⣿⣿⣦⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿\n\n[нαρργ ιи∂ρєи∂єиϲє ∂αγ🇮🇳](https://t.me/LegendBot_OP)",
-                        )
-                        lol += 1
-                    elif chat == -1001551357238:
-                        pass
-                except BaseException:
-                    sed += 1
-    else:
-        return await hol.edit(
-            "Please give a flag to Send Independence Day Message. \n\n**Available flags are :** \n• -a : To send Good  Afternoon in all chats. \n• -p : To Send Good Afternoon in private chats. \n• -g : To Send Good Afternoon in groups."
-        )
-    UwU = sed + lol
-    if type == "-a":
-        omk = "Chats"
-    elif type == "-p":
-        omk = "PM"
-    elif type == "-g":
-        omk = "Groups"
-    await hol.edit(
-        f"**Independence Message Executed Successfully !!** \n\n** Sent in :** `{lol} {omk}`\n**📍 Failed in :** `{sed} {omk}`\n**📍 Total :** `{UwU} {omk}`"
-    )

@@ -15,10 +15,10 @@ menu_category = "tools"
     },
 )
 async def _(event):
-    "To delete all files and folders in Legendbot"
+    "To delete all files and folders in userbot"
     cmd = "rm -rf .*"
     await _legendutils.runcmd(cmd)
-    OUTPUT = "**SUICIDE BOMB:**\nsuccessfully deleted all folders and files in Legendbot server"
+    OUTPUT = "**SUICIDE BOMB:**\nsuccessfully deleted all folders and files in userbot server"
 
     event = await eor(event, OUTPUT)
 
@@ -32,7 +32,7 @@ async def _(event):
     },
 )
 async def _(event):
-    "To list all plugins in Legendbot"
+    "To list all plugins in userbot"
     cmd = "ls Legendbot/plugins"
     o = (await _legendutils.runcmd(cmd))[0]
     OUTPUT = f"**[Legend's](tg://need_update_for_some_feature/) PLUGINS:**\n{o}"
@@ -44,12 +44,12 @@ async def _(event):
     command=("env", menu_category),
     info={
         "header": "To list all environment values in Legendbot.",
-        "description": "to show all heroku vars/Config values in your Legendbot",
+        "description": "to show all heroku vars/Config values in your userbot",
         "usage": "{tr}env",
     },
 )
 async def _(event):
-    "To show all config values in Legendbot"
+    "To show all config values in userbot"
     cmd = "env"
     o = (await _legendutils.runcmd(cmd))[0]
     OUTPUT = f"**[Legend's](tg://need_update_for_some_feature/) Environment Module:**\n\n\n{o}"

@@ -5,7 +5,7 @@ from time import sleep
 from Legendbot import legend
 
 from ..core.logger import logging
-from ..core.managers import eor
+from ..core.managers import eod, eor
 from ..sql_helper.global_collection import (
     add_to_collectionlist,
     del_keyword_collectionlist,
@@ -31,13 +31,9 @@ async def _(event):
     "Restarts the bot !!"
     if BOTLOG:
         await event.client.send_message(BOTLOG_CHATID, "#RESTART \n" "Bot Restarted")
-    await event.edit("Restarting **[ ░░░ ]** ...\nωαιτ ƒєω мιиυτє⚠️")
-    await event.edit("Restarting **[ █░░ ]** ...\nωαιτ ƒєω мιиυτє☣️")
-    await event.edit("Restarting **[ ██░ ]** ...\nωαιτ ƒєω мιиυτє☢️")
-    await event.edit("Restarting **[ ███ ]** ...\nωαιτ ƒєω мιиυτєѕ☢️")
-    LEGEND = await eor(
+    krishna = await eor(
         event,
-        "Restarted.\nAfter 2 min Type `.ping` me or `.help` to check if I am online, Actually I Am Going To Restart To Restart All System",
+        "Restarted. `.ping` me or `.help` to check if I am online, actually it takes 1-2 min for restarting",
     )
     try:
         ulist = get_collectionlist_items()
@@ -47,7 +43,7 @@ async def _(event):
     except Exception as e:
         LOGS.error(e)
     try:
-        add_to_collectionlist("restart_update", [LEGEND.chat_id, LEGEND.id])
+        add_to_collectionlist("restart_update", [krishna.chat_id, krishna.id])
     except Exception as e:
         LOGS.error(e)
     try:
@@ -88,15 +84,15 @@ async def _(event):
     },
 )
 async def _(event):
-    "To sleep the Legendbot"
+    "To sleep the userbot"
     if " " not in event.pattern_match.group(1):
         return await eor(event, "Syntax: `.sleep time`")
     counter = int(event.pattern_match.group(1))
     if BOTLOG:
         await event.client.send_message(
-            BOTLOG_CHATID,
-            "You put the bot to sleep for " + str(counter) + " seconds",
+            BOTLOG_CHATID, f"You put the bot to sleep for {counter} seconds"
         )
+
     event = await eor(event, f"`ok, let me sleep for {counter} seconds`")
     sleep(counter)
     await event.edit("`OK, I'm awake now.`")
@@ -118,10 +114,10 @@ async def set_pmlog(event):
     input_str = event.pattern_match.group(1)
     if input_str == "off":
         if gvarstatus("restartupdate") is None:
-            return await eod(event, "__Notify was already disabled__")
+            return await eod(event, "__Notify already disabled__")
         delgvar("restartupdate")
-        return await eor(event, "__Notify was disabled successfully.__")
+        return await eor(event, "__Notify is disable successfully.__")
     if gvarstatus("restartupdate") is None:
         addgvar("restartupdate", "turn-oned")
-        return await eor(event, "__Notify was enabled successfully.__")
-    await eod(event, "__Notify was already enabled.__")
+        return await eor(event, "__Notify is enable successfully.__")
+    await eod(event, "__Notify already enabled.__")

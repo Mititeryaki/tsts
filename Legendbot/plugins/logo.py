@@ -1,26 +1,25 @@
 """
-Created by @Legend_K_Boy
-#LegendUserBot
+Created by @LegendBoy_OP
+#legenduserbot
 """
 
-import asyncio
 import os
 import random
 import re
-import urllib
+from io import BytesIO
 
 import PIL
 import requests
 from bs4 import BeautifulSoup
 from PIL import Image, ImageDraw, ImageFont
-from telethon.tl.types import InputMessagesFilterDocument, InputMessagesFilterPhotos
+from telegraph import upload_file
 
-from Legendbot import legend
+from Legendbot import Convert, legend
 
 from ..core.managers import eod, eor
 from ..helpers.functions import clippy
 from ..sql_helper.globals import addgvar, delgvar, gvarstatus
-from . import convert_toimage, mention, reply_id
+from . import hmention, reply_id
 
 # ======================================================================================================================================================================================
 
@@ -35,224 +34,183 @@ vars_list = {
     "lf": "LOGO_FONT",
 }
 
+rand_bg = ["total random", "anime", "frame", "mcu/dcu", "neon"]
 # ======================================================================================================================================================================================
 
-menu_category = "useless"
+menu_category = "extra"
 
-PICS_STR = []
+
+def random_checker(Font, Color, Background):
+    if Font == "Random":
+        return True
+    if Color == "Random":
+        return True
+    if Background in rand_bg:
+        return True
+    return False
+
+
+def random_loader(Font, Color, Background, collection):
+    bg = []
+    if Font == "Random":
+        Font = random.choice(collection["fonts"])
+    if Color == "Random":
+        Color = random.choice(collection["colors"])
+    if Background in rand_bg:
+        if Background == "total random":
+            for i in collection["backgronds"]:
+                bg += collection["backgronds"][i]
+            Background = random.choice(bg)
+        else:
+            Background = random.choice(collection["backgronds"][Background])
+    return Font, Color, Background
 
 
 @legend.legend_cmd(
-    pattern="(|s)logo(?: |$)([\s\S]*)",
+    pattern="(|f|s)logo(?: |$)([\s\S]*)",
     command=("logo", menu_category),
     info={
         "header": "Make a logo in image or sticker",
         "description": "Just a fun purpose plugin to create logo in image or in sticker.",
         "flags": {
             "s": "To create a logo in sticker instade of image.",
+            "f": "To create a logo image and send as documnent",
         },
+        "note": "To create multiple logo at once you can use count value from 1 to 7.\nThis only work if any random option is selected.",
         "usage": [
-            "{tr}logo <text>",
-            "{tr}slogo <text>",
-            "{tr}ologo <text> <reply to image media only>",
+            "{tr}logo <text/reply>",
+            "{tr}logo count ; <text/reply>",
+            "{tr}flogo <text/reply>",
+            "{tr}flogo count ; <text/reply>",
+            "{tr}slogo <text/reply>",
         ],
         "examples": [
-            "{tr}logo Legend",
-            "{tr}slogo Legend",
-            "{tr}ologo LegendBot",
+            "{tr}logo LegendUserbot",
+            "{tr}logo 10;LegendUserbot",
+            "{tr}flogo LegendUserBot",
+            "{tr}flogo 5; LegendUserbot",
+            "{tr}slogo LegendUserBot",
         ],
     },
 )
-async def very(event):
+async def very(event):  # sourcery no-metrics
+    # sourcery skip: low-code-quality
     "To create a logo"
     cmd = event.pattern_match.group(1).lower()
     text = event.pattern_match.group(2)
+    if text and ";" in text:
+        count, text = text.split(";")
+    else:
+        count = 1
+    count = min(int(count), 7)
     reply = await event.get_reply_message()
     if not text and reply:
         text = reply.text
     if not text:
         return await eod(event, "**ಠ∀ಠ Gimmi text to make logo**")
+    legendevent = await eor(event, "Processing...")
     reply_to_id = await reply_id(event)
-    legendevent = await eor(event, "`Processing.....`")
-    LOGO_FONT_SIZE = gvarstatus("LOGO_FONT_SIZE") or 220
+    LOGO_FONT_SIZE = gvarstatus("LOGO_FONT_SIZE") or 200
     LOGO_FONT_WIDTH = gvarstatus("LOGO_FONT_WIDTH") or 2
     LOGO_FONT_HEIGHT = gvarstatus("LOGO_FONT_HEIGHT") or 2
-    LOGO_FONT_COLOR = gvarstatus("LOGO_FONT_COLOR") or "red"
+    LOGO_FONT_COLOR = loader1 = gvarstatus("LOGO_FONT_COLOR") or "red"
     LOGO_FONT_STROKE_WIDTH = gvarstatus("LOGO_FONT_STROKE_WIDTH") or 0
     LOGO_FONT_STROKE_COLOR = gvarstatus("LOGO_FONT_STROKE_COLOR") or None
-    LOGO_BACKGROUND = (
+    LOGO_BACKGROUND = loader2 = (
         gvarstatus("LOGO_BACKGROUND")
-        or "https://raw.githubusercontent.com/ITS-LEGENDBOT/RESOURCES/master/background/black.jpg"
+        or "https://github.com/LEGEND-AI/LEGENDUSERBOT-Resources/raw/master/Resources/Logo/Background/black.jpg"
     )
-    LOGO_FONT = (
+    LOGO_FONT = loader3 = (
         gvarstatus("LOGO_FONT")
-        or "https://github.com/ITS-LEGENDBOT/RESOURCES/blob/master/fonts/VampireWars.ttf?raw=true"
+        or "https://github.com/LEGEND-AI/LEGENDUSERBOT-Resources/blob/master/Resources/Logo/Fonts/Streamster.ttf?raw=true"
     )
-    if not os.path.isdir("./temp"):
-        os.mkdir("./temp")
-    if not os.path.exists("temp/bg_img.jpg"):
-        urllib.request.urlretrieve(LOGO_BACKGROUND, "temp/bg_img.jpg")
-    img = Image.open("./temp/bg_img.jpg")
-    draw = ImageDraw.Draw(img)
-    if not os.path.exists("temp/logo.ttf"):
-        urllib.request.urlretrieve(LOGO_FONT, "temp/logo.ttf")
-    font = ImageFont.truetype("temp/logo.ttf", int(LOGO_FONT_SIZE))
-    image_widthz, image_heightz = img.size
-    w, h = draw.textsize(text, font=font)
-    h += int(h * 0.21)
-    try:
-        draw.text(
-            (
-                (image_widthz - w) / float(LOGO_FONT_WIDTH),
-                (image_heightz - h) / float(LOGO_FONT_HEIGHT),
-            ),
-            text,
-            font=font,
-            fill=LOGO_FONT_COLOR,
-            stroke_width=int(LOGO_FONT_STROKE_WIDTH),
-            stroke_fill=LOGO_FONT_STROKE_COLOR,
+    rcheck = random_checker(LOGO_FONT, LOGO_FONT_COLOR, LOGO_BACKGROUND)
+    if rcheck:
+        rjson = requests.get(
+            "https://raw.githubusercontent.com/LEGEND-AI/LEGENDUSERBOT-Resources/master/Resources/Logo/resources.txt"
+        ).json()
+    if count > 1 and not rcheck:
+        count = 1
+        legendevent = await eor(event, "Not using random value,Changing limit to 1..")
+    output = []
+    captionlist = []
+    for i in range(count):
+        if rcheck:
+            LOGO_FONT, LOGO_FONT_COLOR, LOGO_BACKGROUND = random_loader(
+                LOGO_FONT, LOGO_FONT_COLOR, LOGO_BACKGROUND, rjson
+            )
+        try:
+            template = requests.get(LOGO_BACKGROUND)
+            temp_img = Image.open(BytesIO(template.content))
+        except Exception as e:
+            await eor(legendevent, f"**Bad Url:** {LOGO_BACKGROUND}\n\n{e}")
+        raw_width, raw_height = temp_img.size
+        resized_width, resized_height = (
+            (1024, int(1024 * raw_height / raw_width))
+            if raw_width > raw_height
+            else (int(1024 * raw_width / raw_height), 1024)
         )
-    except OSError:
-        draw.text(
-            (
-                (image_widthz - w) / float(LOGO_FONT_WIDTH),
-                (image_heightz - h) / float(LOGO_FONT_HEIGHT),
-            ),
-            text,
-            font=font,
-            fill=LOGO_FONT_COLOR,
-            stroke_width=0,
-            stroke_fill=None,
-        )
-    file_name = "PRO.png"
-    img.save(file_name, "png")
+        img = temp_img.convert("RGBA").resize((resized_width, resized_height))
+        draw = ImageDraw.Draw(img)
+        logo = requests.get(LOGO_FONT)
+        fontsize = int(LOGO_FONT_SIZE)
+        font = ImageFont.truetype(BytesIO(logo.content), fontsize)
+        while font.getsize(max(text.splitlines(), key=len))[0] > 0.70 * resized_width:
+            fontsize -= 1
+            font = ImageFont.truetype(BytesIO(logo.content), fontsize)
+        image_widthz, image_heightz = img.size
+        w, h = draw.textsize(text, font=font)
+        h += int(h * 0.21)
+        try:
+            draw.text(
+                (
+                    (image_widthz - w) / float(LOGO_FONT_WIDTH),
+                    (image_heightz - h) / float(LOGO_FONT_HEIGHT),
+                ),
+                text,
+                font=font,
+                fill=LOGO_FONT_COLOR,
+                stroke_width=int(LOGO_FONT_STROKE_WIDTH),
+                stroke_fill=LOGO_FONT_STROKE_COLOR,
+            )
+        except OSError:
+            draw.text(
+                (
+                    (image_widthz - w) / float(LOGO_FONT_WIDTH),
+                    (image_heightz - h) / float(LOGO_FONT_HEIGHT),
+                ),
+                text,
+                font=font,
+                fill=LOGO_FONT_COLOR,
+                stroke_width=0,
+                stroke_fill=None,
+            )
+        file_name = f"legendbot{i}.png"
+        img.save(file_name, "png")
+        output.append(file_name)
+        captionlist.append("")
+        LOGO_FONT_COLOR, LOGO_BACKGROUND, LOGO_FONT = loader1, loader2, loader3
+    captionlist[-1] = f"<b><i>➥ Logo generated by :- {hmention}</i></b>"
     if cmd == "":
         await event.client.send_file(
             event.chat_id,
-            file_name,
+            output,
             reply_to=reply_to_id,
         )
-    elif cmd == "s":
-        await clippy(event.client, file_name, event.chat_id, reply_to_id)
+    elif cmd == "f":
+        await event.client.send_file(
+            event.chat_id,
+            output,
+            caption=captionlist,
+            reply_to=reply_to_id,
+            force_document=True,
+            parse_mode="html",
+        )
+    else:
+        await clippy(event.client, output[0], event.chat_id, reply_to_id)
     await legendevent.delete()
-    if os.path.exists(file_name):
-        os.remove(file_name)
-
-
-@legend.legend_cmd(
-    pattern="ologo(?: |$)([\s\S]*)",
-    command=("ologo", menu_category),
-    info={
-        "header": "Make a logo in image or sticker",
-        "description": "Just a fun purpose plugin to create logo in image or in sticker.",
-        "usage": [
-            "{tr}logo <text>",
-            "{tr}slogo <text>",
-            "{tr}ologo <text> <reply to image media only>",
-        ],
-        "examples": [
-            "{tr}logo Legend",
-        ],
-    },
-)
-async def lg1(event):
-    "To create a Random logo"
-    event = await eor(event, "`Processing.....`")
-    gvarstatus("LOGO_FONT_SIZE") or 220
-    LOGO_FONT_WIDTH = gvarstatus("LOGO_FONT_WIDTH") or 2
-    LOGO_FONT_HEIGHT = gvarstatus("LOGO_FONT_HEIGHT") or 2
-    LOGO_FONT_COLOR = gvarstatus("LOGO_FONT_COLOR") or "black"
-    LOGO_FONT_STROKE_WIDTH = gvarstatus("LOGO_FONT_STROKE_WIDTH") or 0
-    LOGO_FONT_STROKE_COLOR = gvarstatus("LOGO_FONT_STROKE_COLOR") or None
-    fnt = await get_font_file(event.client, "@Legend_Fonts")
-    """
-    cmd = event.pattern_match.group(1).lower()
-    text = event.pattern_match.group(2)
-    reply = await event.get_reply_message()
-    if not text and reply:
-        text = reply.text
-    if not text:
-        return await eod(event, "**ಠ∀ಠ Gimmi text to make logo**")
-    """
-    if event.reply_to_msg_id:
-        rply = await event.get_reply_message()
-        if rply.text:
-            logo_ = rply.text
-        else:
-            logo_ = await rply.download_media()
-    else:
-        async for i in event.client.iter_messages(
-            "@LegendBot_Logos", filter=InputMessagesFilterPhotos
-        ):
-            PICS_STR.append(i)
-        pic = random.choice(PICS_STR)
-        logo_ = await pic.download_media()
-    text = event.pattern_match.group(1)
-    if len(text) <= 8:
-        font_size_ = 150
-    elif len(text) >= 9:
-        font_size_ = 50
-    else:
-        font_size_ = 130
-    if not text:
-        await eod(event, "**Give some text to make a logo !!**")
-        return
-    img = Image.open(logo_)
-    draw = ImageDraw.Draw(img)
-    font = ImageFont.truetype(fnt, font_size_)
-    image_widthz, image_heightz = img.size
-    w, h = draw.textsize(text, font=font)
-    h += int(h * 0.21)
-    image_width, image_height = img.size
-    try:
-        draw.text(
-            (
-                (image_widthz - w) / float(LOGO_FONT_WIDTH),
-                (image_heightz - h) / float(LOGO_FONT_HEIGHT),
-            ),
-            text,
-            font=font,
-            fill=LOGO_FONT_COLOR,
-            stroke_width=int(LOGO_FONT_STROKE_WIDTH),
-            stroke_fill=LOGO_FONT_STROKE_COLOR,
-        )
-    except OSError:
-        draw.text(
-            (
-                (image_widthz - w) / float(LOGO_FONT_WIDTH),
-                (image_heightz - h) / float(LOGO_FONT_HEIGHT),
-            ),
-            text,
-            font=font,
-            fill=LOGO_FONT_COLOR,
-            stroke_width=0,
-            stroke_fill=None,
-        )
-    file_name = "LEGENDBOT.png"
-    img.save(file_name, "png")
-    await event.client.send_file(
-        event.chat_id,
-        file_name,
-        caption=f"**Made By :** {mention}",
-    )
-    await event.delete()
-    try:
-        os.remove(file_name)
-        os.remove(fnt)
-        os.remove(logo_)
-    except:
-        pass
-
-
-async def get_font_file(client, channel_id):
-    font_file_message_s = await client.get_messages(
-        entity=channel_id,
-        filter=InputMessagesFilterDocument,
-        limit=None,
-    )
-    font_file_message = random.choice(font_file_message_s)
-
-    return await client.download_media(font_file_message)
+    for i in output:
+        os.remove(i)
 
 
 @legend.legend_cmd(
@@ -270,7 +228,8 @@ async def get_font_file(client, channel_id):
         ],
         "examples": [
             "{tr}lbg red",
-            "{tr}clbg https://telegra.ph/blablabla.jpg",
+            "{tr}lbg anime",
+            "{tr}clbg https://graph.org/blablabla.jpg",
         ],
     },
 )
@@ -278,45 +237,32 @@ async def bad(event):
     "To change background of logo"
     cmd = event.pattern_match.group(1).lower()
     input_str = event.pattern_match.group(2)
-    source = requests.get(
-        "https://github.com/ITS-LEGENDBOT/RESOURCES/tree/master/background"
-    )
-    soup = BeautifulSoup(source.text, features="html.parser")
-    links = soup.find_all("a", class_="js-navigation-open Link--primary")
-    bg_name = []
-    lbg_list = "**Available background names are here:-**\n\n"
-    for i, each in enumerate(links, start=1):
-        owo = os.path.splitext(each.text)[0]
-        bg_name.append(owo)
-        lbg_list += f"**{i}.**  `{owo}`\n"
-    if os.path.exists("./temp/bg_img.jpg"):
-        os.remove("./temp/bg_img.jpg")
+    bg_name = ["black", "blue", "purple", "red", "white"] + rand_bg
     if cmd == "c":
         reply_message = await event.get_reply_message()
         if not input_str and event.reply_to_msg_id and reply_message.media:
-            if not os.path.isdir("./temp"):
-                os.mkdir("./temp")
-            output = await _legendtools.media_to_pic(event, reply_message)
-            convert_toimage(output[1], filename="./temp/bg_img.jpg")
-            return await eod(event, "This media is successfully set as background.")
+            output = await Convert.to_image(
+                event, reply_message, dirct="./temp", file="lbg.png", noedits=True
+            )
+            myphoto_urls = upload_file(output[1])
+            input_str = f"https://graph.org{myphoto_urls[0]}"
+            os.remove(output[1])
         if not input_str.startswith("https://t"):
             return await eod(
                 event, "Give a valid Telegraph picture link, Or reply to a media."
             )
         addgvar("LOGO_BACKGROUND", input_str)
         return await eod(event, f"**Background for logo changed to :-** `{input_str}`")
-    if not input_str:
-        return await eod(event, lbg_list, time=60)
-    if input_str not in bg_name:
-        legendevent = await eor(event, "`Give me a correct background name...`")
-        await asyncio.sleep(1)
-        await eod(legendevent, lbg_list, time=60)
-    else:
-        string = f"https://raw.githubusercontent.com/ITS-LEGENDBOT/RESOURCES/master/background/{input_str}.jpg"
-        addgvar("LOGO_BACKGROUND", string)
-        await eod(
-            event, f"**Background for logo changed to :-** `{input_str}`", time=10
-        )
+    if not input_str or input_str not in bg_name:
+        lbg_list = "**Available background names are here:-**\n\n**1.** `black`\n**2.** `blue`\n**3.** `purple`\n**4.** `red`\n**5.** `white`\n\n**Random Backgrounds:**\n**1.** `total random`\n**2.** `anime`\n**3.** `frame`\n**4.** `mcu/dcu`\n**5.** `neon`\n"
+        return await eod(event, lbg_list, 60)
+    string = (
+        input_str
+        if input_str in rand_bg
+        else f"https://github.com/LEGEND-AI/LEGENDUSERBOT-Resources/raw/master/Resources/Logo/Background/{input_str}.jpg"
+    )
+    addgvar("LOGO_BACKGROUND", string)
+    await eod(event, f"**Background for logo changed to :-** `{input_str}`", 10)
 
 
 @legend.legend_cmd(
@@ -353,118 +299,108 @@ async def bad(event):
         ],
     },
 )
-async def pussy(event):
+async def pussy(event):  # sourcery no-metrics
+    # sourcery skip: low-code-quality
     "To customise logo font"
     cmd = event.pattern_match.group(1).lower()
     input_str = event.pattern_match.group(2)
     if cmd == "":
         source = requests.get(
-            "https://github.com/ITS-LEGENDBOT/RESOURCES/tree/master/fonts"
+            "https://github.com/LEGEND-AI/LEGENDUSERBOT-Resources/tree/master/Resources/Logo/Fonts"
         )
         soup = BeautifulSoup(source.text, features="html.parser")
         links = soup.find_all("a", class_="js-navigation-open Link--primary")
         logo_font = []
-        font_name = "**Available font names are here:-**\n\n"
+        font_name = "**Available font names are here:-**\n\n**0.** `Random`\n\n"
         for i, each in enumerate(links, start=1):
             lol = os.path.splitext(each.text)[0]
             logo_font.append(lol)
             font_name += f"**{i}.**  `{lol}`\n"
-        if not input_str:
-            return await eod(event, font_name, time=80)
-        if input_str not in logo_font:
-            legendevent = await eor(event, "`Give me a correct font name...`")
-            await asyncio.sleep(1)
-            await eod(legendevent, font_name, time=80)
-        else:
+        logo_font.append("Random")
+        if not input_str or input_str not in logo_font:
+            return await eod(event, font_name, 80)
+        string = input_str
+        if input_str != "Random":
             if " " in input_str:
                 input_str = str(input_str).replace(" ", "%20")
-            string = f"https://github.com/ITS-LEGENDBOT/RESOURCES/blob/master/fonts/{input_str}.ttf?raw=true"
-            if os.path.exists("temp/logo.ttf"):
-                os.remove("temp/logo.ttf")
-                urllib.request.urlretrieve(
-                    string,
-                    "temp/logo.ttf",
-                )
-            addgvar("LOGO_FONT", string)
-            await eod(event, f"**Font for logo changed to :-** `{input_str}`", time=10)
+            string = f"https://github.com/LEGEND-AI/LEGENDUSERBOT-Resources/blob/master/Resources/Logo/Fonts/{input_str}.ttf?raw=true"
+        addgvar("LOGO_FONT", string)
+        return await eod(event, f"**Font for logo changed to :-** `{input_str}`", 10)
     elif cmd in ["c", "sc"]:
         fg_name = []
         for name, code in PIL.ImageColor.colormap.items():
             fg_name.append(name)
             fg_list = str(fg_name).replace("'", "`")
-        if not input_str:
-            return await eod(
-                event,
-                f"**Available color names are here:-**\n\n{fg_list}",
-                time=80,
-            )
-        if input_str not in fg_name:
-            legendevent = await eor(event, "`Give me a correct color name...`")
-            await asyncio.sleep(1)
-            await eod(
-                legendevent,
-                f"**Available color names are here:-**\n\n{fg_list}",
-                time=80,
-            )
-        elif cmd == "c":
+        rfg_name = fg_name + ["Random"]
+        if cmd == "c":
+            if not input_str or input_str not in rfg_name:
+                return await eod(
+                    event,
+                    f"**Available font color names are here:-**\n\n[`Random`]\n\n{fg_list}",
+                    80,
+                )
             addgvar("LOGO_FONT_COLOR", input_str)
-            await eod(
-                event,
-                f"**Foreground color for logo changed to :-** `{input_str}`",
-                10,
+            return await eod(
+                event, f"**Font color for logo changed to :-** `{input_str}`", 10
             )
-        else:
-            addgvar("LOGO_FONT_STROKE_COLOR", input_str)
-            await eod(
-                event, f"**Stroke color for logo changed to :-** `{input_str}`", 10
+        if not input_str or input_str not in fg_name:
+            return await eod(
+                event, f"**Available stroke color names are here:-**\n\n{fg_list}", 80
             )
-    else:
-        legend = re.compile(r"^\-?[1-9][0-9]*\.?[0-9]*")
-        isint = re.match(legend, input_str)
-        if not input_str or not isint:
-            return await eod(event, "**Give an integer value to set**", time=10)
-        if cmd == "s":
-            input_str = int(input_str)
-            if input_str > 0 and input_str <= 1000:
-                addgvar("LOGO_FONT_SIZE", input_str)
-                await eod(event, f"**Font size is changed to :-** `{input_str}`")
-            else:
-                await eod(
-                    event,
-                    f"**Font size is between 0 - 1000, You can't set limit to :** `{input_str}`",
-                )
-        elif cmd == "w":
-            input_str = float(input_str)
-            if input_str > 0 and input_str <= 100:
-                addgvar("LOGO_FONT_WIDTH", input_str)
-                await eod(event, f"**Font width is changed to :-** `{input_str}`")
-            else:
-                await eod(
-                    event,
-                    f"**Font width is between 0 - 100, You can't set limit to {input_str}",
-                )
-        elif cmd == "h":
-            input_str = float(input_str)
-            if input_str > 0 and input_str <= 100:
-                addgvar("LOGO_FONT_HEIGHT", input_str)
-                await eod(event, f"**Font hight is changed to :-** `{input_str}`")
-            else:
-                await eod(
-                    event,
-                    f"**Font hight is between 0 - 100, You can't set limit to {input_str}",
-                )
-        elif cmd == "sw":
-            input_str = int(input_str)
-            if input_str > 0 and input_str <= 100:
-                addgvar("LOGO_FONT_STROKE_WIDTH", input_str)
-                await eod(
-                    event, f"**Font stroke width is changed to :-** `{input_str}`"
-                )
-            else:
-                await eod(
-                    event,
-                    f"**Font stroke width size is between 0 - 100, You can't set limit to :** `{input_str}`",
-                )
+        addgvar("LOGO_FONT_STROKE_COLOR", input_str)
+        return await eod(
+            event, f"**Stroke color for logo changed to :-** `{input_str}`", 10
+        )
+    lol = re.compile(r"^\-?[1-9][0-9]*\.?[0-9]*")
+    isint = re.match(lol, input_str)
+    if not input_str or not isint:
+        return await eod(event, "**Give an integer value to set**", 10)
+    if cmd == "s":
+        input_str = int(input_str)
+        if input_str > 0 and input_str <= 1000:
+            addgvar("LOGO_FONT_SIZE", input_str)
+            return await eod(event, f"**Font size is changed to :-** `{input_str}`", 10)
+        await eod(
+            event,
+            f"**Font size is between 0 - 1000, You can't set limit to :** `{input_str}`",
+            10,
+        )
+    elif cmd == "w":
+        input_str = float(input_str)
+        if input_str > 0 and input_str <= 100:
+            addgvar("LOGO_FONT_WIDTH", input_str)
+            return await eod(
+                event, f"**Font width is changed to :-** `{input_str}`", 10
+            )
+        await eod(
+            event,
+            f"**Font width is between 0 - 100, You can't set limit to {input_str}",
+            10,
+        )
+    elif cmd == "h":
+        input_str = float(input_str)
+        if input_str > 0 and input_str <= 100:
+            addgvar("LOGO_FONT_HEIGHT", input_str)
+            return await eod(
+                event, f"**Font hight is changed to :-** `{input_str}`", 10
+            )
+        await eod(
+            event,
+            f"**Font hight is between 0 - 100, You can't set limit to {input_str}",
+            10,
+        )
+    elif cmd == "sw":
+        input_str = int(input_str)
+        if input_str > 0 and input_str <= 100:
+            addgvar("LOGO_FONT_STROKE_WIDTH", input_str)
+            return await eod(
+                event, f"**Font stroke width is changed to :-** `{input_str}`", 10
+            )
+        await eod(
+            event,
+            f"**Font stroke width size is between 0 - 100, You can't set limit to :** `{input_str}`",
+            10,
+        )
 
 
 @legend.legend_cmd(
@@ -489,7 +425,7 @@ async def pussy(event):
         ],
     },
 )
-async def legend(event):
+async def lol(event):
     "Manage all values of logo"
     cmd = event.pattern_match.group(1).lower()
     input_str = event.pattern_match.group(2)
@@ -499,10 +435,6 @@ async def legend(event):
             var_data = gvarstatus(var)
             await eod(event, f"📑 Value of **{var}** is  `{var_data}`", time=60)
         elif cmd == "d":
-            if input_str == "lbg" and os.path.exists("./temp/bg_img.jpg"):
-                os.remove("./temp/bg_img.jpg")
-            if input_str == "lf" and os.path.exists("./temp/logo.ttf"):
-                os.remove("./temp/logo.ttf")
             delgvar(var)
             await eod(
                 event, f"📑 Value of **{var}** is now deleted & set to default.", time=60
@@ -516,10 +448,6 @@ async def legend(event):
         delgvar("LOGO_FONT_WIDTH")
         delgvar("LOGO_FONT_STROKE_COLOR")
         delgvar("LOGO_FONT_STROKE_WIDTH")
-        if os.path.exists("./temp/bg_img.jpg"):
-            os.remove("./temp/bg_img.jpg")
-        if os.path.exists("./temp/logo.ttf"):
-            os.remove("./temp/logo.ttf")
         await eod(
             event,
             "📑 Values for all vars deleted successfully & all settings reset.",
@@ -528,6 +456,6 @@ async def legend(event):
     else:
         await eod(
             event,
-            "**📑 Give correct vars name :**\n__Correct Vars code list is :__\n\n1. `lbg` : **LOGO_BACKGROUND**\n2. `lfc` : **LOGO_FONT_COLOR**\n3. `lf` : **LOGO_FONT**\n4. `lfs` : **LOGO_FONT_SIZE**\n5. `lfh` : **LOGO_FONT_HEIGHT**\n6. `lfw` : **LOGO_FONT_WIDTH**\n7. `lfsw` : **LOGO_FONT_STROKE_WIDTH**\n8. `lfsc` : **LOGO_FONT_STROKE_SCOLOUR**",
+            f"**📑 Give correct vars name :**\n__Correct Vars code list is :__\n\n1. `lbg` : **LOGO_BACKGROUND**\n2. `lfc` : **LOGO_FONT_COLOR**\n3. `lf` : **LOGO_FONT**\n4. `lfs` : **LOGO_FONT_SIZE**\n5. `lfh` : **LOGO_FONT_HEIGHT**\n6. `lfw` : **LOGO_FONT_WIDTH**",
             time=60,
         )

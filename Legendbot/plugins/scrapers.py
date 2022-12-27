@@ -7,7 +7,7 @@ from wikipedia.exceptions import DisambiguationError, PageError
 
 from Legendbot import legend
 
-from ..core.managers import eor
+from ..core.managers import eod, eor
 from ..helpers.functions import get_cast, get_moviecollections, imdb, mov_titles
 from ..helpers.utils import reply_id
 from . import BOTLOG, BOTLOG_CHATID
@@ -67,12 +67,13 @@ async def wiki(event):
     },
 )
 async def imdb_query(event):  # sourcery no-metrics
+    # sourcery skip: low-code-quality
     """To fetch imdb data about the given movie or series."""
     legendevent = await eor(event, "`searching........`")
     reply_to = await reply_id(event)
     try:
         movie_name = event.pattern_match.group(1)
-        movies = imdb.search_movie(movie_name)
+        movies = imdb.search_movie_advanced(movie_name)
         movieid = movies[0].movieID
         movie = imdb.get_movie(movieid)
         moviekeys = list(movie.keys())
@@ -135,7 +136,7 @@ async def imdb_query(event):  # sourcery no-metrics
         if len(rtext) > 1024:
             extralimit = len(rtext) - 1024
             climit = len(resulttext) - extralimit - 20
-            resulttext = resulttext[:climit] + "...........</i>"
+            resulttext = f"{resulttext[:climit]}...........</i>"
         if imageurl:
             downloader = SmartDL(imageurl, moviepath, progress_bar=False)
             downloader.start(blocking=False)

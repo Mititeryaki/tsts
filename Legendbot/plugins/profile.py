@@ -104,15 +104,15 @@ async def _(event):
                     await legendevent.edit("`size must be less than 2 mb`")
                     os.remove(photo)
                     return
-                lolpic = None
-                lolvideo = await event.client.upload_file(photo)
+                legendpic = None
+                legendvideo = await event.client.upload_file(photo)
             else:
-                lolpic = await event.client.upload_file(photo)
-                lolvideo = None
+                legendpic = await event.client.upload_file(photo)
+                legendvideo = None
             try:
                 await event.client(
                     functions.photos.UploadProfilePhotoRequest(
-                        file=lolpic, video=lolvideo, video_start_ts=0.01
+                        file=legendpic, video=legendvideo, video_start_ts=0.01
                     )
                 )
             except Exception as e:
@@ -233,8 +233,7 @@ async def remove_profilepic(delpfp):
 async def _(event):
     "To list all public channels and groups."
     result = await event.client(GetAdminedPublicChannelsRequest())
-    output_str = "**Your current reserved usernames are:**\n"
-    output_str += "".join(
+    output_str = "**Your current reserved usernames are:**\n" + "".join(
         f" - {channel_obj.title} @{channel_obj.username} \n"
         for channel_obj in result.chats
     )

@@ -1,3 +1,10 @@
+# Heroku manager for your legenduserbot
+
+# CC- @refundisillegal\nSyntax:-\n.get var NAME\n.del var NAME\n.set var NAME
+
+# Copyright (C) 2020 Adek Maulana.
+# All rights reserved.
+
 import asyncio
 import math
 import os
@@ -16,10 +23,10 @@ menu_category = "tools"
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 # =================
 
-Heroku = heroku3.from_key(Config.API_KEY)
+Heroku = heroku3.from_key(Config.HEROKU_API_KEY)
 heroku_api = "https://api.heroku.com"
-APP_NAME = Config.APP_NAME
-API_KEY = Config.API_KEY
+HEROKU_APP_NAME = Config.HEROKU_APP_NAME
+HEROKU_API_KEY = Config.HEROKU_API_KEY
 
 
 @legend.legend_cmd(
@@ -46,31 +53,28 @@ async def variable(var):  # sourcery no-metrics
     """
     Manage most of ConfigVars setting, set new var, get current var, or delete var...
     """
-    if (Config.API_KEY is None) or (Config.APP_NAME is None):
+    if (Config.HEROKU_API_KEY is None) or (Config.HEROKU_APP_NAME is None):
         return await eod(
             var,
-            "Set the required vars in heroku to function this normally `API_KEY` and `APP_NAME`.",
+            "Set the required vars in heroku to function this normally `HEROKU_API_KEY` and `HEROKU_APP_NAME`.",
         )
-    app = Heroku.app(Config.APP_NAME)
+    app = Heroku.app(Config.HEROKU_APP_NAME)
     exe = var.pattern_match.group(1)
     heroku_var = app.config()
     if exe == "get":
-        legend = await eor(var, "`Getting information...`")
+        lol = await eor(var, "`Getting information...`")
         await asyncio.sleep(1.0)
         try:
             variable = var.pattern_match.group(2).split()[0]
-            legend = "**ConfigVars**:" f"\n\n {variable} = `{heroku_var[variable]}`\n"
-            if "LEGEND_STRING" in variable:
-                await eor(
-                    var, "Legend String is a Sensetive Data.\nProtected By LegendBot"
+            if variable in heroku_var:
+                return await eor(
+                    lol,
+                    "**ConfigVars**:" f"\n\n`{variable}` = `{heroku_var[variable]}`\n",
                 )
-                return
-            elif variable in heroku_var:
-                await eor(var, legend)
-            else:
-                return await var.edit(
-                    "**ConfigVars**:" f"\n\n`Error:\n-> {variable} don't exists`"
-                )
+            await eor(
+                lol,
+                "**ConfigVars**:" f"\n\n__Error:\n-> __`{variable}`__ don't exists__",
+            )
         except IndexError:
             configs = prettyjson(heroku_var.to_dict(), indent=2)
             with open("configs.json", "w") as fp:
@@ -78,7 +82,7 @@ async def variable(var):  # sourcery no-metrics
             with open("configs.json", "r") as fp:
                 result = fp.read()
                 await eor(
-                    var,
+                    lol,
                     "`[HEROKU]` ConfigVars:\n\n"
                     "================================"
                     f"\n```{result}```\n"
@@ -87,37 +91,32 @@ async def variable(var):  # sourcery no-metrics
             os.remove("configs.json")
     elif exe == "set":
         variable = "".join(var.text.split(maxsplit=2)[2:])
-        legend = await eor(var, "`Setting information...`")
+        lol = await eor(var, "`Setting information...`")
         if not variable:
-            return await legend.edit("`.set var <ConfigVars-name> <value>`")
+            return await eor(lol, "`.set var <ConfigVars-name> <value>`")
         value = "".join(variable.split(maxsplit=1)[1:])
         variable = "".join(variable.split(maxsplit=1)[0])
         if not value:
-            return await legend.edit("`.set var <ConfigVars-name> <value>`")
+            return await eor(lol, "`.set var <ConfigVars-name> <value>`")
         await asyncio.sleep(1.5)
-        if "LEGEND_STRING" in variable:
-            await legend.edit("Successfully Changed")
-            return
         if variable in heroku_var:
-            await legend.edit(
-                f"`{variable}` **successfully changed to  ->  **`{value}`"
-            )
+            await eor(lol, f"`{variable}` **successfully changed to  ->  **`{value}`")
         else:
-            await legend.edit(
-                f"`{variable}`**  successfully added with value`  ->  **{value}`"
+            await eor(
+                lol, f"`{variable}`**  successfully added with value`  ->  **{value}`"
             )
         heroku_var[variable] = value
     elif exe == "del":
-        legend = await eor(var, "`Getting information to deleting variable...`")
+        lol = await eor(var, "`Getting information to deleting variable...`")
         try:
             variable = var.pattern_match.group(2).split()[0]
         except IndexError:
-            return await legend.edit("`Please specify ConfigVars you want to delete`")
+            return await eor(lol, "`Please specify ConfigVars you want to delete`")
         await asyncio.sleep(1.5)
         if variable not in heroku_var:
-            return await legend.edit(f"`{variable}`**  does not exist**")
+            return await eor(lol, f"`{variable}`**  does not exist**")
 
-        await legend.edit(f"`{variable}`  **successfully deleted**")
+        await eor(lol, f"`{variable}`  **successfully deleted**")
         del heroku_var[variable]
 
 
@@ -125,7 +124,7 @@ async def variable(var):  # sourcery no-metrics
     pattern="usage$",
     command=("usage", menu_category),
     info={
-        "header": "To Check dyno usage of Legendbot and also to know how much left.",
+        "header": "To Check dyno usage of userbot and also to know how much left.",
         "usage": "{tr}usage",
     },
 )
@@ -133,10 +132,10 @@ async def dyno_usage(dyno):
     """
     Get your account Dyno Usage
     """
-    if (Config.APP_NAME is None) or (Config.API_KEY is None):
+    if (HEROKU_APP_NAME is None) or (HEROKU_API_KEY is None):
         return await eod(
             dyno,
-            "Set the required vars in heroku to function this normally `API_KEY` and `APP_NAME`.",
+            "Set the required vars in heroku to function this normally `HEROKU_API_KEY` and `HEROKU_APP_NAME`.",
         )
     dyno = await eor(dyno, "`Processing...`")
     useragent = (
@@ -147,10 +146,10 @@ async def dyno_usage(dyno):
     user_id = Heroku.account().id
     headers = {
         "User-Agent": useragent,
-        "Authorization": f"Bearer {Config.API_KEY}",
+        "Authorization": f"Bearer {Config.HEROKU_API_KEY}",
         "Accept": "application/vnd.heroku+json; version=3.account-quotas",
     }
-    path = "/accounts/" + user_id + "/actions/get-quota"
+    path = f"/accounts/{user_id}/actions/get-quota"
     r = requests.get(heroku_api + path, headers=headers)
     if r.status_code != 200:
         return await dyno.edit(
@@ -181,7 +180,7 @@ async def dyno_usage(dyno):
     await asyncio.sleep(1.5)
     return await dyno.edit(
         "**Dyno Usage**:\n\n"
-        f" 🗒 `Dyno usage for`  **{Config.APP_NAME}**:\n"
+        f" -> `Dyno usage for`  **{Config.HEROKU_APP_NAME}**:\n"
         f"     •  `{AppHours}`**h**  `{AppMinutes}`**m**  "
         f"**|**  [`{AppPercentage}`**%**]"
         "\n\n"
@@ -201,14 +200,14 @@ async def dyno_usage(dyno):
 )
 async def _(dyno):
     "To get recent 100 lines logs from heroku"
-    if (Config.APP_NAME is None) or (Config.API_KEY is None):
+    if (HEROKU_APP_NAME is None) or (HEROKU_API_KEY is None):
         return await eod(
             dyno,
-            "Set the required vars in heroku to function this normally `API_KEY` and `APP_NAME`.",
+            "Set the required vars in heroku to function this normally `HEROKU_API_KEY` and `HEROKU_APP_NAME`.",
         )
     try:
-        Heroku = heroku3.from_key(API_KEY)
-        app = Heroku.app(APP_NAME)
+        Heroku = heroku3.from_key(HEROKU_API_KEY)
+        app = Heroku.app(HEROKU_APP_NAME)
     except BaseException:
         return await dyno.reply(
             " Please make sure your Heroku API Key, Your App name are configured correctly in the heroku"
@@ -230,3 +229,71 @@ def prettyjson(obj, indent=2, maxlinelength=80):
         indent=indent,
     )
     return indentitems(items, indent, level=0)
+
+
+@legend.legend_cmd(
+    pattern="(|add|del)buildpack(?:\s|$)([\s\S]*)",
+    command=("buildpack", menu_category),
+    info={
+        "header": "To manage heroku buildpacks.",
+        "flags": {
+            "add": "To set new buildpack",
+            "del": "To delete the existing buildpack",
+        },
+        "usage": [
+            "{tr}buildpack",
+            "{tr}addbuildpack (url of the buildpack)",
+            "{tr}delbuildpack (url of the buildpack)",
+        ],
+        "examples": [
+            "{tr}buildpack",
+            "{tr}addbuildpack https://github.com/amivin/aria2-heroku.git",
+        ],
+    },
+)
+async def variable(event):
+    "Manange heroku buildpacks with heroku api"
+    if (Config.HEROKU_API_KEY is None) or (Config.HEROKU_APP_NAME is None):
+        return await eod(
+            event,
+            "Set the required vars in heroku to function this normally `HEROKU_API_KEY` and `HEROKU_APP_NAME`.",
+        )
+    app = Heroku.app(Config.HEROKU_APP_NAME)
+    cmd = event.pattern_match.group(1).lower()
+    link = event.pattern_match.group(2)
+    buidpacks = []
+    for item in app.buildpacks():
+        buidpacks.append(item.buildpack.url)
+    if cmd and not link:
+        return await eod(event, "**Error::** `Give buildpack link..`")
+    elif cmd == "add":
+        if link in buidpacks:
+            return await eod(
+                event, "**Error::** __Buildpack is already connected to this app..__"
+            )
+        buidpacks.append(link)
+        app.update_buildpacks(buidpacks)
+        return await eod(
+            event,
+            f"**Success:** __Buildpack connected.\nDo `.update deploy` to complete updating__",
+            30,
+        )
+    elif cmd == "del":
+        if link not in buidpacks:
+            return await eod(
+                event,
+                "**Error::** __Unable to delete, buildpack is not connected to this app...__",
+            )
+        buidpacks.remove(link)
+        app.update_buildpacks(buidpacks)
+        return await eod(
+            event,
+            f"**Success:** __Buildpack removed.\nDo `.update deploy` to complete updating__",
+            30,
+        )
+    string = (
+        f"__**Currently available buildpacks for {Config.HEROKU_APP_NAME}:-**__\n\n"
+    )
+    for i, url in enumerate(buidpacks, start=1):
+        string += f"**{i}.**   `{url}`\n\n"
+    await eor(event, string)

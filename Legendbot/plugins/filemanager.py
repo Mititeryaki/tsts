@@ -9,8 +9,8 @@ from Legendbot import legend
 
 from ..Config import Config
 from ..core.managers import eod, eor
-from ..helpers.progress import humanbytes
 from ..helpers.utils import _format, _legendutils
+from . import humanbytes
 
 menu_category = "tools"
 
@@ -22,22 +22,22 @@ menu_category = "tools"
         "header": "To list all files and folders.",
         "description": "Will show all files and folders if no path is given or folder path is given else will show file details(if file path os given).",
         "usage": "{tr}ls <path>",
-        "examples": "{tr}ls Legendbot",
+        "examples": "{tr}ls userbot",
     },
 )
-async def ls(event):  # sourcery no-metrics
+async def ls(event):  # sourcery no-metrics  # sourcery skip: low-code-quality
     "To list all files and folders."
-    legend = "".join(event.text.split(maxsplit=1)[1:])
-    path = legend or os.getcwd()
+    lol = "".join(event.text.split(maxsplit=1)[1:])
+    path = lol or os.getcwd()
     if not os.path.exists(path):
         await eor(
             event,
-            f"there is no such directory or file with the name `{legend}` check again",
+            f"there is no such directory or file with the name `{lol}` check again",
         )
         return
-    path = Path(legend) if legend else os.getcwd()
+    path = Path(lol) if lol else os.getcwd()
     if os.path.isdir(path):
-        if legend:
+        if lol:
             msg = "Folders and Files in `{}` :\n".format(path)
         else:
             msg = "Folders and Files in Current Directory :\n"
@@ -45,13 +45,13 @@ async def ls(event):  # sourcery no-metrics
         files = ""
         folders = ""
         for contents in sorted(lists):
-            swtpath = os.path.join(path, contents)
-            if not os.path.isdir(swtpath):
-                size = os.stat(swtpath).st_size
+            legendpath = os.path.join(path, contents)
+            if not os.path.isdir(legendpath):
+                size = os.stat(legendpath).st_size
                 if str(contents).endswith((".mp3", ".flac", ".wav", ".m4a")):
                     files += f"🎵`{contents}`\n"
                 if str(contents).endswith((".opus")):
-                    files += f"🎙 `{contents}`\n"
+                    files += f"🎙`{contents}`\n"
                 elif str(contents).endswith(
                     (".mkv", ".mp4", ".webm", ".avi", ".mov", ".flv")
                 ):
@@ -66,7 +66,7 @@ async def ls(event):  # sourcery no-metrics
                     files += f"📄`{contents}`\n"
             else:
                 folders += f"📁`{contents}`\n"
-        msg = msg + folders + files if files or folders else msg + "__empty path__"
+        msg = msg + folders + files if files or folders else f"{msg}__empty path__"
     else:
         size = os.stat(path).st_size
         msg = "The details of given file :\n"
@@ -116,16 +116,15 @@ async def ls(event):  # sourcery no-metrics
 )
 async def rem(event):
     "To delete a file or folder."
-    legend = event.pattern_match.group(1)
-    if legend:
-        path = Path(legend)
+    if lol := event.pattern_match.group(1):
+        path = Path(lol)
     else:
         await eor(event, "what should i delete")
         return
     if not os.path.exists(path):
         await eor(
             event,
-            f"there is no such directory or file with the name `{legend}` check again",
+            f"there is no such directory or file with the name `{lol}` check again",
         )
         return
     legendcmd = f"rm -rf '{path}'"
@@ -143,10 +142,10 @@ async def rem(event):
     info={
         "header": "To create a new directory.",
         "usage": "{tr}mkdir <topic>",
-        "examples": "{tr}mkdir legend",
+        "examples": "{tr}mkdir lol",
     },
 )
-async def mkdir(event):
+async def make_dir(event):
     "To create a new directory."
     pwd = os.getcwd()
     input_str = event.pattern_match.group(1)
@@ -181,7 +180,7 @@ async def mkdir(event):
         "examples": "{tr}cpto sample_config.py ; downloads",
     },
 )
-async def cpto(event):
+async def copy(event):
     "To copy a file from one directory to other directory"
     pwd = os.getcwd()
     input_str = event.pattern_match.group(1)
@@ -204,7 +203,7 @@ async def cpto(event):
     if not os.path.exists(original):
         await eod(
             event,
-            f"there is no such directory or file with the name `{input_str}` check again",
+            f"there is no such directory or file with the name `{original}` check again",
         )
         return
     mone = await eor(event, "copying the file ...", parse_mode=_format.parse_pre)
@@ -225,7 +224,7 @@ async def cpto(event):
         "examples": "{tr}mvto stringsession.py ; downloads",
     },
 )
-async def mvto(event):
+async def move(event):
     "To move a file from one directory to other directory"
     pwd = os.getcwd()
     input_str = event.pattern_match.group(1)

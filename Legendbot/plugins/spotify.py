@@ -1,33 +1,51 @@
+"""Module to display Currenty Playing Spotify Songs in your bio"""
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#  CREDITS:
+# [Poolitzer](https://t.me/poolitzer)  (for creating spotify bio plugin)
+#
+# [Sunny](https://t.me/medevilofxd) and Others for spotify_userbot
+# (https://github.com/anilchauhanxda/spotify_Legendbot/blob/master/bot.py)
+#
+# Github.com/code-rgb [ TG - @DetetedUser420 ]
+#  Ported it to Pyrogram and improved Heroku compatiblilty
+#
+# tg- @LegendBoy_OP  // Github.com/LEGEND-AI
+# Ported back to teletethon.. xD // Added decent thumb & dual mode for now playing song
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
 import asyncio
+import contextlib
 import os
 import re
 import time
 import urllib.request
 
-import lyricsgenius
 import requests
 import ujson
 from PIL import Image, ImageEnhance, ImageFilter
-from telegraph import Telegraph
+from telegraph import upload_file
 from telethon import events
 from telethon.errors import AboutTooLongError, FloodWaitError
-from telethon.tl.custom import Button
+from telethon.errors.rpcerrorlist import YouBlockedUserError
 from telethon.tl.functions.account import UpdateProfileRequest
+from telethon.tl.functions.contacts import UnblockRequest as unblock
 from telethon.tl.functions.users import GetFullUserRequest
-from validators.url import url
 
 from Legendbot.core.logger import logging
 
+from ..Config import Config
 from ..core.managers import eod, eor
 from ..helpers.functions.functions import (
     delete_conv,
     ellipse_create,
     ellipse_layout_create,
-    make_inline,
+    post_to_telegraph,
     text_draw,
 )
+from ..helpers.utils import reply_id
 from ..sql_helper import global_collectionjson as glob_db
-from . import BOTLOG, BOTLOG_CHATID, Config, legend, reply_id
+from . import BOTLOG, BOTLOG_CHATID, LyricsGen, legend
 
 SPOTIFY_CLIENT_ID = Config.SPOTIFY_CLIENT_ID
 SPOTIFY_CLIENT_SECRET = Config.SPOTIFY_CLIENT_SECRET
@@ -63,7 +81,7 @@ OFFSET = 1
 LIMIT = 70 - OFFSET
 # [----------------------------------------------------------------------]
 # Errors
-no_sp_vars = "Vars `SPOTIFY_CLIENT_ID` & `SPOTIFY_CLIENT_SECRET` are missing, add them first !\nGet them from here : https://developer.spotify.com/dashboard/login "
+no_sp_vars = "Vars `SPOTIFY_CLIENT_ID` & `SPOTIFY_CLIENT_SECRET` are missing, add them first !\n\n[Follow this tutorial](https://graph.org/Steps-of-setting-Spotify-Vars-in-Legenduserbot-04-24-2)"
 
 
 class Database:
@@ -234,11 +252,12 @@ if SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET:
         return False
 
     async def spotify_bio():  # sourcery no-metrics
+        # sourcery skip: low-code-quality
         while SP_DATABASE.SPOTIFY_MODE:
             # SPOTIFY
             skip = False
             to_insert = {}
-            oauth = {"Authorization": "Bearer " + SP_DATABASE.return_token()}
+            oauth = {"Authorization": f"Bearer {SP_DATABASE.return_token()}"}
             r = requests.get(
                 "https://api.spotify.com/v1/me/player/currently-playing", headers=oauth
             )
@@ -260,15 +279,14 @@ if SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET:
                             "resolved."
                         )
                         await legend.send_message(BOTLOG_CHATID, string)
-                else:
-                    if save_spam("spotify", True):
-                        # currently item is not passed when the user plays a
-                        # podcast
-                        string = (
-                            f"**[INFO]**\n\nThe playback {received['currently_playing_type']}"
-                            " didn't gave me any additional information, so I skipped updating the bio."
-                        )
-                        await legend.send_message(BOTLOG_CHATID, string)
+                elif save_spam("spotify", True):
+                    # currently item is not passed when the user plays a
+                    # podcast
+                    string = (
+                        f"**[INFO]**\n\nThe playback {received['currently_playing_type']}"
+                        " didn't gave me any additional information, so I skipped updating the bio."
+                    )
+                    await legend.send_message(BOTLOG_CHATID, string)
             # 429 means flood limit, we need to wait
             elif r.status_code == 429:
                 to_wait = r.headers["Retry-After"]
@@ -280,8 +298,7 @@ if SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET:
                 )
                 skip = True
                 await asyncio.sleep(int(to_wait))
-            # 204 means user plays nothing, since to_insert is false, we dont
-            # need to change anything
+            # 204 means user plays nothing
             elif r.status_code == 204:
                 if save_spam("spotify", False):
                     stringy = (
@@ -300,10 +317,8 @@ if SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET:
                 r = requests.post("https://accounts.spotify.com/api/token", data=data)
                 received = r.json()
                 # if a new refresh is token as well, we save it here
-                try:
+                with contextlib.suppress(KeyError):
                     SP_DATABASE.save_refresh(received["refresh_token"])
-                except KeyError:
-                    pass
                 SP_DATABASE.save_token(received["access_token"])
                 glob_db.add_collection(
                     "SP_DATA",
@@ -317,9 +332,7 @@ if SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET:
                 # since we didnt actually update our status yet, lets do this
                 # without the 30 seconds wait
                 skip = True
-            # 502 means bad gateway, its an issue on spotify site which we can do nothing about. 30 seconds wait shouldn't
-            # put too much pressure on the spotify server, so we are just going
-            # to notify the user once
+            # 502 means bad gateway
             elif r.status_code == 502:
                 if save_spam("spotify", True):
                     string = (
@@ -327,9 +340,7 @@ if SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET:
                         "servers. The bot will continue to run but may not update the bio for a short time."
                     )
                     await legend.send_message(BOTLOG_CHATID, string)
-            # 503 means service unavailable, its an issue on spotify site which we can do nothing about. 30 seconds wait
-            # shouldn't put too much pressure on the spotify server, so we are
-            # just going to notify the user once
+            # 503 means service unavailable
             elif r.status_code == 503:
                 if save_spam("spotify", True):
                     string = (
@@ -344,7 +355,6 @@ if SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET:
                 if save_spam("spotify", True):
                     string = "**[INFO]**\n\nSpotify returned a 404 error, which is a bug on their side."
                     await legend.send_message(BOTLOG_CHATID, string)
-            # catch anything else
             else:
                 await legend.send_message(
                     BOTLOG_CHATID,
@@ -397,15 +407,11 @@ if SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET:
                     if new_bio:
                         # test if the user changed his bio to blank, we save it
                         # before we override
-                        if not bio:
-                            SP_DATABASE.save_bio(bio)
-                        # test if the user changed his bio in the meantime, if
-                        # yes, we save it before we override
-                        elif "🎶" not in bio:
+                        if not bio or "🎶" not in bio:
                             SP_DATABASE.save_bio(bio)
                         # test if the bio isn't the same, otherwise updating it
                         # would be stupid
-                        if not new_bio == bio:
+                        if new_bio != bio:
                             try:
                                 await legend(UpdateProfileRequest(about=new_bio))
                                 spotify_bio.lrt = time.time()
@@ -428,14 +434,12 @@ if SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET:
                                     await legend.send_message(BOTLOG_CHATID, stringy)
                     # if we dont have a bio, everything was too long, so we
                     # tell the user that
-                    if not new_bio:
-                        if save_spam("telegram", True):
-                            to_send = (
-                                "**[INFO]**\n\nThe current track exceeded the character limit, so the bio wasn't "
-                                f"updated.\n\n Track: {title}\nInterpret: {interpret}"
-                            )
-                            await legend.send_message(BOTLOG_CHATID, to_send)
-                # not to_insert means no playback
+                    if not new_bio and save_spam("telegram", True):
+                        to_send = (
+                            "**[INFO]**\n\nThe current track exceeded the character limit, so the bio wasn't "
+                            f"updated.\n\n Track: {title}\nInterpret: {interpret}"
+                        )
+                        await legend.send_message(BOTLOG_CHATID, to_send)
                 else:
                     if save_spam("telegram", False):
                         stringy = (
@@ -446,18 +450,10 @@ if SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET:
                     old_bio = SP_DATABASE.return_bio()
                     # this means the bio is blank, so we save that as the new
                     # one
-                    if not bio:
+                    if not bio or "🎶" not in bio and bio != old_bio:
                         SP_DATABASE.save_bio(bio)
-                    # this means an old playback is in the bio, so we change it
-                    # back to the original one
                     elif "🎶" in bio:
                         await legend(UpdateProfileRequest(about=old_bio))
-                    # this means a new original is there, lets save it
-                    elif not bio == old_bio:
-                        SP_DATABASE.save_bio(bio)
-                    # this means the original one we saved is still valid
-                    else:
-                        pass
             except FloodWaitError as e:
                 to_wait = e.seconds
                 LOGS.error(f"to wait for {str(to_wait)}")
@@ -478,9 +474,9 @@ async def sp_var_check(event):
     if not (SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET):
         await event.edit(no_sp_vars)
         return False
-    if (SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET) and SP_DATABASE is None:
+    if SP_DATABASE is None:
         await event.edit(
-            "ERROR :: No Database was found!\n**Do `.help spsetup` for more info.**"
+            "ERROR :: No Database was found!\n**Do `.help spsetup` for more info.**\n\n[Follow this tutorial](https://graph.org/Steps-of-setting-Spotify-Vars-in-Legenduserbot-04-24-2)"
         )
         return False
     return True
@@ -516,70 +512,72 @@ async def spotifybio(event):
         await spotify_bio()
 
 
-def telegraph_lyrics(tittle, artist):
-    telegraph = Telegraph()
-    telegraph.create_account(short_name=Config.TELEGRAPH_SHORT_NAME)
+def title_fetch(title):
+    pattern = re.compile(r"([^(-]+) [(-].*")
+    if "-E-" in title or "- E -" in title:
+        pattern = re.compile(
+            r"([a-zA-Z0-9]+(?: ?[a-zA-Z0-9]+)+(?: - \w - \w+)?(?:-\w-\w+)?).*"
+        )
+    if regx := pattern.search(title):
+        return regx[1]
+    return title
+
+
+async def telegraph_lyrics(event, tittle, artist):
     GENIUS = Config.GENIUS_API_TOKEN
     symbol = "❌"
     if GENIUS is None:
-        result = (
-            "Set <b>GENIUS_API_TOKEN</b> in heroku vars for functioning of this command"
-        )
+        result = "<h1>Set GENIUS_API_TOKEN in heroku vars for functioning of this command.<br>‌‌‎ <br>Check out this <a href = https://graph.org/How-to-get-Genius-API-Token-04-26>Tutorial</a></h1>"
     else:
-        genius = lyricsgenius.Genius(GENIUS)
         try:
-            songs = genius.search_song(tittle, artist)
-            content = songs.lyrics
-            content = content.replace("\n", "<br>")
-            result = f"<h3>{tittle}</h3><br><b>by {artist}</b><br><br>{content}"
-            symbol = "📜"
-        except (TypeError, AttributeError):
-            result = "<b>Lyrics Not found!</b>"
+            album, content = await LyricsGen.lyrics(
+                event, tittle, artist, mode="devloper"
+            )
+            content = (
+                content.replace("\n", "<br>")
+                .replace("<br><br>", "<br>‌‌‎ <br>")
+                .replace("[", "<b>[")
+                .replace("]", "]</b>")
+            )
+            result = f"<img src='{album}'/><h4>{tittle}</h4><br><b>by {artist}</b><br>‌‌‎ <br>{content}"
+            symbol = "ıllılı."
+        except Exception:
+            result = "<h4>Lyrics Not found!</h4>"
             symbol = "❌"
     try:
-        response = telegraph.create_page(
-            "Lyrics",
-            html_content=result,
-            author_name="LegendBot",
-            author_url="https://t.me/Legendbot_XD",
-        )
+        response = await post_to_telegraph("Lyrics", result)
     except Exception as e:
         symbol = "❌"
-        response = telegraph.create_page(
-            "Lyrics",
-            html_content=str(e),
-            author_name="LegendBot",
-            author_url="https://t.me/LegendBot_XD",
-        )
-    return response["url"], symbol
+        response = await post_to_telegraph("Lyrics", f"<h4>{e}</h4>")
+    return response, symbol
 
 
 def file_check():
-    logo = "temp/legend_music.png"
+    logo = "temp/lol_music.png"
     font_bold = "temp/ArialUnicodeMS.ttf"
     font_mid = "temp/GoogleSans-Medium.ttf"
     if not os.path.isdir("./temp"):
         os.mkdir("./temp")
     if not os.path.exists(logo):
         urllib.request.urlretrieve(
-            "https://github.com/ITS-LEGENDBOT/RESOURCES/raw/master/Resources/Spotify/LEGEND.png",
+            "https://github.com/LEGEND-AI/LEGENDUSERBOT-Resources/raw/master/Resources/Spotify/lol.png",
             logo,
         )
     if not os.path.exists(font_mid):
         urllib.request.urlretrieve(
-            "https://github.com/ITS-LEGENDBOT/RESOURCES/blob/master/Resources/Spotify/ArialUnicodeMS.ttf?raw=true",
+            "https://github.com/LEGEND-AI/LEGENDUSERBOT-Resources/blob/master/Resources/Spotify/GoogleSans-Medium.ttf?raw=true",
             font_mid,
         )
     if not os.path.exists(font_bold):
         urllib.request.urlretrieve(
-            "https://github.com/ITS-LEGENDBOT/RESOURCES/blob/master/Resources/Spotify/GoogleSans-Bold.ttf?raw=true",
+            "https://github.com/LEGEND-AI/LEGENDUSERBOT-Resources/blob/master/Resources/Spotify/ArialUnicodeMS.ttf?raw=true",
             font_bold,
         )
     return logo, font_bold, font_mid
 
 
 def sp_data(API):
-    oauth = {"Authorization": "Bearer " + SP_DATABASE.return_token()}
+    oauth = {"Authorization": f"Bearer {SP_DATABASE.return_token()}"}
     spdata = requests.get(API, headers=oauth)
     if spdata.status_code == 401:
         data = {
@@ -591,10 +589,8 @@ def sp_data(API):
         r = requests.post("https://accounts.spotify.com/api/token", data=data)
         received = r.json()
         # if a new refresh is token as well, we save it here
-        try:
+        with contextlib.suppress(KeyError):
             SP_DATABASE.save_refresh(received["refresh_token"])
-        except KeyError:
-            pass
         SP_DATABASE.save_token(received["access_token"])
         glob_db.add_collection(
             "SP_DATA",
@@ -605,19 +601,22 @@ def sp_data(API):
                 }
             },
         )
-        spdata = requests.get(API, headers=oauth)
+        oauth2 = {"Authorization": f"Bearer {SP_DATABASE.return_token()}"}
+        spdata = requests.get(API, headers=oauth2)
     return spdata
 
 
 async def make_thumb(url, client, song, artist, now, full):
-    pic_name = "./temp/LEGEND.png"
+    if not os.path.isdir("./temp"):
+        os.mkdir("./temp")
+    pic_name = "./temp/lol.png"
     urllib.request.urlretrieve(url, pic_name)
     background = Image.open(pic_name).resize((1024, 1024))
     background = background.filter(ImageFilter.GaussianBlur(5))
     enhancer = ImageEnhance.Brightness(background)
     background = enhancer.enhance(0.5)
     logo, bfont, mfont = file_check()
-    lol = Image.open(logo, "r").resize((int(1024 / 5), int(1024 / 5)))
+    lol = Image.open(logo, "r").resize((1024 // 5, 1024 // 5))
     thumbmask = Image.new("RGBA", (1024, 1024), 0)
     thumbmask.paste(background, (0, 0))
     thumbmask.paste(lol, (-30, 840), mask=lol)
@@ -630,7 +629,7 @@ async def make_thumb(url, client, song, artist, now, full):
         myphoto = await client.download_media(photos[0])
     except IndexError:
         myphoto = urllib.request.urlretrieve(
-            "https://github.com/ITS-LEGENDBOT/RESOURCES/raw/master/Resources/Spotify/op.jpg"
+            "https://github.com/LEGEND-AI/LEGENDUSERBOT-Resources/raw/master/Resources/Spotify/SwagCat.jpg"
         )
     user_lay = ellipse_layout_create(myphoto, 6, 30)
     thumbmask.paste(user_lay, (700, 450), user_lay)
@@ -647,6 +646,32 @@ async def make_thumb(url, client, song, artist, now, full):
     thumbmask.save(pic_name)
     os.remove(myphoto)
     return pic_name
+
+
+async def get_spotify(event, response):
+    dic = {}
+    received = response.json()
+    if received["currently_playing_type"] == "track":
+        dic["title"] = received["item"]["name"]
+        dic["progress"] = ms_converter(received["progress_ms"])
+        dic["interpret"] = received["item"]["artists"][0]["name"]
+        dic["duration"] = ms_converter(received["item"]["duration_ms"])
+        dic["link"] = received["item"]["external_urls"]["spotify"]
+        dic["image"] = received["item"]["album"]["images"][1]["url"]
+        tittle = title_fetch(dic["title"])
+        thumb = await make_thumb(
+            dic["image"],
+            legend,
+            tittle,
+            dic["interpret"],
+            dic["progress"],
+            dic["duration"],
+        )
+        lyrics, symbol = await telegraph_lyrics(event, tittle, dic["interpret"])
+        url = upload_file(thumb)
+        if os.path.exists(thumb):
+            os.remove(thumb)
+    return f"https://graph.org{url[0]}", tittle, dic, lyrics, symbol
 
 
 @legend.legend_cmd(
@@ -667,38 +692,12 @@ async def spotify_now(event):
     r = sp_data("https://api.spotify.com/v1/me/player/currently-playing")
     if r.status_code == 204:
         return await eod(legendevent, "\n**I'm not listening anything right now  ;)**")
-    try:
-        if SP_DATABASE.SPOTIFY_MODE:
-            info = f"🎶 Vibing ; [{spotify_bio.title}]({spotify_bio.link}) - {spotify_bio.interpret}"
-            return await eor(event, info, link_preview=True)
-        dic = {}
-        received = r.json()
-        if received["currently_playing_type"] == "track":
-            dic["title"] = received["item"]["name"]
-            dic["progress"] = ms_converter(received["progress_ms"])
-            dic["interpret"] = received["item"]["artists"][0]["name"]
-            dic["duration"] = ms_converter(received["item"]["duration_ms"])
-            dic["link"] = received["item"]["external_urls"]["spotify"]
-            dic["image"] = received["item"]["album"]["images"][1]["url"]
-            tittle = dic["title"]
-            regx = re.search(r"([^(-]+) [(-].*", tittle)
-            if regx:
-                tittle = regx.group(1)
-            thumb = await make_thumb(
-                dic["image"],
-                legend,
-                tittle,
-                dic["interpret"],
-                dic["progress"],
-                dic["duration"],
-            )
-            lyrics = telegraph_lyrics(tittle, dic["interpret"])
-            await legendevent.delete()
-        button_format = f'**🎶 Track :- ** `{tittle}`\n**🎤 Artist :- ** `{dic["interpret"]}` <media:{thumb}> [🎧 Spotify]<buttonurl:{dic["link"]}>[📜 Lyrics]<buttonurl:{lyrics}:same>'
-        await make_inline(button_format, event.client, event.chat_id, msg_id)
-        os.remove(thumb)
-    except KeyError:
-        await eod(legendevent, "\n**Strange!! Try after restaring Spotify once ;)**", 7)
+    if SP_DATABASE.SPOTIFY_MODE:
+        info = f"🎶 Vibing ; [{spotify_bio.title}]({spotify_bio.link}) - {spotify_bio.interpret}"
+        return await eor(event, info, link_preview=True)
+    results = await event.client.inline_query(Config.BOT_USERNAME, "spotify")
+    await results[0].click(event.chat_id, reply_to=msg_id, hide_via=True)
+    await legendevent.delete()
 
 
 @legend.legend_cmd(
@@ -755,11 +754,8 @@ async def spotify_now(event):
         song = "__**Spotify last played songs :-**__\n\n"
         songs = x.json()
         for i in songs["items"]:
-            tittle = i["track"]["name"]
-            regx = re.search(r"([^(-]+) [(-].*", tittle)
-            if regx:
-                tittle = regx.group(1)
-            song += f"**◉ [{tittle} - {i['track']['artists'][0]['name']}]({i['track']['external_urls']['spotify']})**\n"
+            title = title_fetch(i["track"]["name"])
+            song += f"**◉ [{title} - {i['track']['artists'][0]['name']}]({i['track']['external_urls']['spotify']})**\n"
     await eor(event, song)
 
 
@@ -775,67 +771,40 @@ async def spotify_now(event):
         "usage": [
             "{tr}now",
             "{tr}inow",
-            "{tr}now <Spotify/Deezer link>",
-            "{tr}inow <Spotify/Deezer link>",
+            "{tr}now <Song Name/Spotify link/Deezer link>",
+            "{tr}inow <Song Name/Spotify link/Deezer link>",
         ],
     },
 )
-async def spotify_now(event):
+async def spotify_now(event):  # sourcery skip: remove-duplicate-dict-key
     "Send spotify song"
-    msg_id = await reply_id(event)
-    link = event.pattern_match.group(1)
-    chat = "@DeezerMusicBot"
+    chat = "@CatMusicRobot"
+    await reply_id(event)
+    cmd = event.pattern_match.group(1).lower()
+    link = event.pattern_match.group(2)
     legendevent = await eor(event, "🎶 `Fetching...`")
-    if link:
-        cap = f"<b>Spotify :- <a href = {link}>Link</a></b>"
-        if not url(link) and "spotify" not in link:
-            return await eod(legendevent, "**Give me a correct link...**")
-    elif not link:
+    if not link:
         if not await sp_var_check(event):
             return
         r = sp_data("https://api.spotify.com/v1/me/player/currently-playing")
         if r.status_code == 204:
             return await eod(
-                legendevent, "\n**I'm not listening anything right now  ;)**"
+                legendevent, "**I'm not listening anything right now  ;)**"
             )
-        try:
-            received = r.json()
-            if received["currently_playing_type"] == "track":
-                title = received["item"]["name"]
-                link = received["item"]["external_urls"]["spotify"]
-                cap = f"<b>Spotify :- <a href = {link}>{title}</a></b>"
-        except KeyError:
-            return await eod(
-                legendevent, "\n**Strange!! Try after restaring Spotify once ;)**"
-            )
+        received = r.json()
+        if received["currently_playing_type"] == "track":
+            link = received["item"]["external_urls"]["spotify"]
+    link = link if cmd == "i" else f"/songs {link}"
     async with event.client.conversation(chat) as conv:
         try:
-            purgeflag = await conv.send_message("/start")
+            purgeflag = await conv.send_message(link)
         except YouBlockedUserError:
-            await legend(unblock("DeezerMusicBot"))
-            purgeflag = await conv.send_message("/start")
-        await conv.get_response()
-        await event.client.send_read_acknowledge(conv.chat_id)
-        await conv.send_message(link)
+            await legend(unblock("CatMusicRobot"))
+            purgeflag = await conv.send_message(link)
         song = await conv.get_response()
+        if not song.media:
+            return await eod(legendevent, "**Sorry unable to find the song.  ;!**")
         await event.client.send_read_acknowledge(conv.chat_id)
         await legendevent.delete()
-        if cmd == "i":
-            songg = await legend.send_file(BOTLOG_CHATID, song)
-            fetch_songg = await legend.tgbot.get_messages(BOTLOG_CHATID, ids=songg.id)
-            btn_song = await legend.tgbot.send_file(
-                BOTLOG_CHATID, fetch_songg, buttons=Button.url("🎧 Spotify", link)
-            )
-            fetch_btn_song = await legend.get_messages(BOTLOG_CHATID, ids=btn_song.id)
-            await event.client.forward_messages(event.chat_id, fetch_btn_song)
-            await songg.delete()
-            await btn_song.delete()
-        else:
-            await event.client.send_file(
-                event.chat_id,
-                song,
-                caption=cap,
-                parse_mode="html",
-                reply_to=msg_id,
-            )
+        await event.client.forward_messages(event.chat_id, song)
         await delete_conv(event, chat, purgeflag)

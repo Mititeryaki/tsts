@@ -25,9 +25,9 @@ async def calculator(event):
     redirected_output = sys.stdout = io.StringIO()
     redirected_error = sys.stderr = io.StringIO()
     stdout, stderr, exc = None, None, None
-    san = f"print({cmd})"
+    krish = f"print({cmd})"
     try:
-        await aexec(san, event)
+        await aexec(krish, event)
     except Exception:
         exc = traceback.format_exc()
     stdout = redirected_output.getvalue()

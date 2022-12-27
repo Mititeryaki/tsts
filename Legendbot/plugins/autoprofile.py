@@ -1,3 +1,5 @@
+# batmanpfp and thorpfp by @Nihinivi
+
 import asyncio
 import base64
 import os
@@ -15,8 +17,6 @@ from telethon.errors import FloodWaitError
 from telethon.tl import functions
 from urlextract import URLExtract
 
-from Legendbot import legend
-
 from ..Config import Config
 from ..helpers.utils import _format
 from ..sql_helper.global_list import (
@@ -26,7 +26,7 @@ from ..sql_helper.global_list import (
     rm_from_list,
 )
 from ..sql_helper.globals import addgvar, delgvar, gvarstatus
-from . import BOTLOG, BOTLOG_CHATID, logging
+from . import BOTLOG, BOTLOG_CHATID, _legendutils, eod, legend, logging
 
 menu_category = "tools"
 DEFAULTUSERBIO = gvarstatus("DEFAULT_BIO") or " ᗯᗩᏆᎢᏆᑎᏀ ᏞᏆᏦᗴ ᎢᏆᗰᗴ  "
@@ -36,13 +36,12 @@ CHANGE_TIME = int(gvarstatus("CHANGE_TIME")) if gvarstatus("CHANGE_TIME") else 6
 DEFAULT_PIC = gvarstatus("DEFAULT_PIC") or None
 FONT_FILE_TO_USE = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
 
-
 autopic_path = os.path.join(os.getcwd(), "Legendbot", "original_pic.png")
 digitalpic_path = os.path.join(os.getcwd(), "Legendbot", "digital_pic.png")
 autophoto_path = os.path.join(os.getcwd(), "Legendbot", "photo_pfp.png")
 
 digitalpfp = (
-    gvarstatus("DIGITAL_PIC") or "https://telegra.ph/file/aeaebe33b1f3988a0b690.jpg"
+    gvarstatus("DIGITAL_PIC") or "https://graph.org/file/aeaebe33b1f3988a0b690.jpg"
 )
 
 COLLECTION_STRINGS = {
@@ -60,7 +59,6 @@ COLLECTION_STRINGS = {
         "thor-wallpaper-hd",
     ],
 }
-menu_category = "tools"
 
 
 async def autopicloop():
@@ -69,7 +67,7 @@ async def autopicloop():
         if BOTLOG:
             return await legend.send_message(
                 BOTLOG_CHATID,
-                "**Error**\n`For functing of autopic you need to set DEFAULT_PIC var in Heroku  Var `",
+                "**Error**\n`For functing of autopic you need to set DEFAULT_PIC var in Database vars`",
             )
         return
     if gvarstatus("autopic") is not None:
@@ -143,10 +141,10 @@ async def digitalpicloop():
         current_time = datetime.now().strftime("%H:%M")
         img = Image.open(autophoto_path)
         drawn_text = ImageDraw.Draw(img)
-        leg = str(base64.b64decode("dXNlcmJvdC9oZWxwZXJzL3N0eWxlcy9kaWdpdGFsLnR0Zg=="))[
+        lol = str(base64.b64decode("dXNlcmJvdC9oZWxwZXJzL3N0eWxlcy9kaWdpdGFsLnR0Zg=="))[
             2:36
         ]
-        fnt = ImageFont.truetype(leg, 200)
+        fnt = ImageFont.truetype(lol, 200)
         drawn_text.text((350, 100), current_time, font=fnt, fill=(124, 252, 0))
         img.save(autophoto_path)
         file = await legend.upload_file(autophoto_path)
@@ -172,7 +170,7 @@ async def bloom_pfploop():
         if BOTLOG:
             return await legend.send_message(
                 BOTLOG_CHATID,
-                "**Error**\n`For functing of bloom you need to set DEFAULT_PIC var in Heroku vars`",
+                "**Error**\n`For functing of bloom you need to set DEFAULT_PIC var in Database vars`",
             )
         return
     while BLOOMSTART:
@@ -211,8 +209,7 @@ async def bloom_pfploop():
 
 
 async def autoname_loop():
-    AUTONAMESTART = gvarstatus("autoname") == "true"
-    while AUTONAMESTART:
+    while AUTONAMESTART := gvarstatus("autoname") == "true":
         DM = time.strftime("%d-%m-%y")
         HM = time.strftime("%H:%M")
         name = f"⌚️ {HM}||›  {DEFAULTUSER} ‹||📅 {DM}"
@@ -223,12 +220,10 @@ async def autoname_loop():
             LOGS.warning(str(ex))
             await asyncio.sleep(ex.seconds)
         await asyncio.sleep(CHANGE_TIME)
-        AUTONAMESTART = gvarstatus("autoname") == "true"
 
 
 async def autobio_loop():
-    AUTOBIOSTART = gvarstatus("autobio") == "true"
-    while AUTOBIOSTART:
+    while AUTOBIOSTART := gvarstatus("autobio") == "true":
         DMY = time.strftime("%d.%m.%Y")
         HM = time.strftime("%H:%M")
         bio = f"📅 {DMY} | {DEFAULTUSERBIO} | ⌚️ {HM}"
@@ -239,7 +234,6 @@ async def autobio_loop():
             LOGS.warning(str(ex))
             await asyncio.sleep(ex.seconds)
         await asyncio.sleep(CHANGE_TIME)
-        AUTOBIOSTART = gvarstatus("autobio") == "true"
 
 
 async def animeprofilepic(collection_images):
@@ -289,7 +283,7 @@ async def autopfp_start():
     info={
         "header": "Changes profile pic with random batman pics every 1 minute",
         "description": "Changes your profile pic every 1 minute with random batman pics.\
-        If you like to change the time then set CHANGE_TIME var in Database Var with time (in seconds) between each change of profilepic.",
+        If you like to change the time then set CHANGE_TIME var in Database with time (in seconds) between each change of profilepic.",
         "note": "To stop this do '.end batmanpfp'",
         "usage": "{tr}batmanpfp",
     },
@@ -334,7 +328,7 @@ async def _(event):
             then set CHANGE_TIME var in Database with time(in seconds) between each change of profilepic.",
         "options": "you can give integer input with cmd like 40,55,75 ..etc.\
              So that your profile pic will rotate with that specific angle",
-        "note": "For functioning of this cmd you need to set DEFAULT_PIC var in Heroku Var. \
+        "note": "For functioning of this cmd you need to set DEFAULT_PIC var in Database. \
             To stop this do '.end autopic'",
         "usage": [
             "{tr}autopic",
@@ -347,7 +341,7 @@ async def _(event):
     if DEFAULT_PIC is None:
         return await eod(
             event,
-            "**Error**\nFor functing of autopic you need to set DEFAULT_PIC var in Heroku vars",
+            "**Error**\nFor functing of autopic you need to set DEFAULT_PIC var in Database vars",
             parse_mode=_format.parse_pre,
         )
     downloader = SmartDL(DEFAULT_PIC, autopic_path, progress_bar=False)
@@ -371,13 +365,13 @@ async def _(event):
     await autopicloop()
 
 
-@legend.legend_cmd(
+@legend.lol_cmd(
     pattern="digitalpfp$",
     command=("digitalpfp", menu_category),
     info={
         "header": "Updates your profile pic every 1 minute with time on it",
         "description": "Deletes old profile pic and Update profile pic with new image with time on it.\
-             You can change this image by setting DIGITAL_PIC var in Database  with telegraph image link",
+             You can change this image by setting DIGITAL_PIC var in Database with telegraph image link",
         "note": "To stop this do '.end digitalpfp'",
         "usage": "{tr}digitalpfp",
     },
@@ -395,14 +389,14 @@ async def _(event):
     await digitalpicloop()
 
 
-@legend.legend_cmd(
+@legend.lol_cmd(
     pattern="bloom$",
     command=("bloom", menu_category),
     info={
         "header": "Changes profile pic every 1 minute with the random colour pic with time on it",
         "description": "If you like to change the time interval for every new pic chnage \
             then set CHANGE_TIME var in Database with time(in seconds) between each change of profilepic.",
-        "note": "For functioning of this cmd you need to set DEFAULT_PIC Heroku var in. \
+        "note": "For functioning of this cmd you need to set DEFAULT_PIC var in Database. \
             To stop this do '.end bloom'",
         "usage": "{tr}bloom",
     },
@@ -412,7 +406,7 @@ async def _(event):
     if DEFAULT_PIC is None:
         return await eod(
             event,
-            "**Error**\nFor functing of bloom you need to set DEFAULT_PIC var in Heroku vars",
+            "**Error**\nFor functing of bloom you need to set DEFAULT_PIC var in Database vars",
             parse_mode=_format.parse_pre,
         )
     downloader = SmartDL(DEFAULT_PIC, autopic_path, progress_bar=True)
@@ -426,7 +420,7 @@ async def _(event):
     await bloom_pfploop()
 
 
-@legend.legend_cmd(
+@legend.lol_cmd(
     pattern="c(ustom)?pfp(?: |$)([\s\S]*)",
     command=("custompfp", menu_category),
     info={
@@ -439,15 +433,8 @@ async def _(event):
             "s": "To stop custom pfp",
         },
         "usage": [
-            "{tr}cpfp or {tr}custompfp <to start>",
-            "{tr}cpfp <types> <links(optional)>",
-        ],
-        "examples": [
-            "{tr}cpfp",
-            "{tr}cpfp -l",
-            "{tr}cpfp -s",
-            "{tr}cpfp -a link1 link2...",
-            "{tr}cpfp -r link1 link2...",
+            "{tr}cpfp - to start",
+            "{tr}cpfp <flags> <links(optional)>",
         ],
     },
 )
@@ -456,12 +443,12 @@ async def useless(event):  # sourcery no-metrics
     input_str = event.pattern_match.group(2)
     ext = re.findall(r"-\w+", input_str)
     try:
-        type = ext[0].replace("-", "")
+        flag = ext[0].replace("-", "")
         input_str = input_str.replace(ext[0], "").strip()
     except IndexError:
-        type = None
+        flag = None
     list_link = get_collection_list("CUSTOM_PFP_LINKS")
-    if type is None:
+    if flag is None:
         if gvarstatus("CUSTOM_PFP") is not None and gvarstatus("CUSTOM_PFP") == "true":
             return await eod(event, "`Custom pfp is already enabled`")
         if not list_link:
@@ -470,7 +457,7 @@ async def useless(event):  # sourcery no-metrics
         await eod(event, "`Starting custom pfp....`")
         await custompfploop()
         return
-    if type == "l":
+    if flag == "l":
         if not list_link:
             return await eod(event, "**ಠ∀ಠ  There no links set for custom pfp...**")
         links = "**Available links for custom pfp are here:-**\n\n"
@@ -478,7 +465,7 @@ async def useless(event):  # sourcery no-metrics
             links += f"**{i}.**  {each}\n"
         await eod(event, links, 60)
         return
-    if type == "s":
+    if flag == "s":
         if gvarstatus("CUSTOM_PFP") is not None and gvarstatus("CUSTOM_PFP") == "true":
             delgvar("CUSTOM_PFP")
             await event.client(
@@ -501,12 +488,12 @@ async def useless(event):  # sourcery no-metrics
         return await eod(
             event, "**ಠ∀ಠ  Reply to valid link or give valid link url as input...**"
         )
-    if type == "a":
+    if flag == "a":
         for i in plink:
             if not is_in_list("CUSTOM_PFP_LINKS", i):
                 add_to_list("CUSTOM_PFP_LINKS", i)
         await eod(event, f"**{len(plink)} pictures sucessfully added to custom pfps**")
-    elif type == "r":
+    elif flag == "r":
         for i in plink:
             if is_in_list("CUSTOM_PFP_LINKS", i):
                 rm_from_list("CUSTOM_PFP_LINKS", i)
@@ -515,12 +502,12 @@ async def useless(event):  # sourcery no-metrics
         )
 
 
-@legend.legend_cmd(
+@legend.lol_cmd(
     pattern="autoname$",
     command=("autoname", menu_category),
     info={
         "header": "Changes your name with time",
-        "description": "Updates your profile name along with time. Set DEFAULT_USER var in Database with your profile name,",
+        "description": "Updates your profile name along with time. Set DEFAULT_USER var in Database.",
         "note": "To stop this do '.end autoname'",
         "usage": "{tr}autoname",
     },
@@ -534,12 +521,12 @@ async def _(event):
     await autoname_loop()
 
 
-@legend.legend_cmd(
+@legend.lol_cmd(
     pattern="autobio$",
     command=("autobio", menu_category),
     info={
         "header": "Changes your bio with time",
-        "description": "Updates your profile bio along with time. Set DEFAULT_BIO var in heroku with your fav bio,",
+        "description": "Updates your profile bio along with time. Set DEFAULT_BIO var in Database with your fav bio,",
         "note": "To stop this do '.end autobio'",
         "usage": "{tr}autobio",
     },
@@ -553,7 +540,7 @@ async def _(event):
     await autobio_loop()
 
 
-@legend.legend_cmd(
+@legend.lol_cmd(
     pattern="end ([\s\S]*)",
     command=("end", menu_category),
     info={
@@ -573,7 +560,7 @@ async def _(event):
         "examples": ["{tr}end autopic"],
     },
 )
-async def _(event):  # sourcery no-metrics
+async def _(event):  # sourcery no-metrics  # sourcery skip: low-code-quality
     "To stop the functions of autoprofile plugin"
     input_str = event.pattern_match.group(1)
     if input_str == "thorpfp" and gvarstatus("autopfp_strings") is not None:

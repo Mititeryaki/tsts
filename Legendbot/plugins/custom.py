@@ -1,28 +1,25 @@
 from telegraph import upload_file
+from telethon.tl.functions.users import GetFullUserRequest
+from urlextract import URLExtract
 from validators.url import url
 
-from Legendbot import legend
+from Legendbot import BOTLOG_CHATID, legend
 from Legendbot.core.logger import logging
 
 from ..Config import Config
 from ..core.managers import eod, eor
 from ..sql_helper.globals import addgvar, delgvar, gvarstatus
-from . import BOTLOG_CHATID
 
-menu_category = "utils"
+menu_category = "tools"
 LOGS = logging.getLogger(__name__)
 cmdhd = Config.HANDLER
 
-
+extractor = URLExtract()
 vlist = [
-    "ABUSE",
-    "ABUSE_PIC",
-    "ADMIN_PIC",
-    "AFKFWD",
     "ALIVE_PIC",
     "ALIVE_EMOJI",
-    "ALIVE_TEXT",
     "ALIVE_TEMPLATE",
+    "ALIVE_TEXT",
     "ALLOW_NSFW",
     "CHANGE_TIME",
     "DEFAULT_BIO",
@@ -33,21 +30,19 @@ vlist = [
     "FIRST_NAME",
     "HELP_EMOJI",
     "HELP_TEXT",
-    "HELP_IMG",
     "IALIVE_PIC",
     "LAST_NAME",
-    "PING_IMG",
+    "PING_PIC",
     "PING_TEMPLATE",
-    "PM_IMG",
+    "PM_PIC",
     "PM_TEXT",
     "PM_BLOCK",
     "MAX_FLOOD_IN_PMS",
     "START_TEXT",
     "BOT_START_PIC",
-    "COLUMNS_IN_HELP",
-    "ROWS_IN_HELP",
+    "NO_OF_ROWS_IN_HELP",
+    "NO_OF_COLUMNS_IN_HELP",
     "CUSTOM_STICKER_PACKNAME",
-    "CUSTOM_STICKER_SETNAME",
 ]
 
 oldvars = {
@@ -58,8 +53,8 @@ oldvars = {
 
 
 @legend.legend_cmd(
-    pattern="(set|get|del)db(?: |$)([\s\S]*)",
-    command=("db", menu_category),
+    pattern="(set|get|del)dv(?: |$)([\s\S]*)",
+    command=("dv", menu_category),
     info={
         "header": "Set vars in database or Check or Delete",
         "description": "Set , Fetch or Delete values or vars directly in database without restart or heroku vars.\n\nYou can set multiple pics by giving space after links in alive, ialive, pm permit.",
@@ -68,21 +63,21 @@ oldvars = {
             "get": "To show the already existing var value.",
             "del": "To delete the existing value",
         },
-        "var name": "**[List of Database Vars]**",
+        "var name": "**[list of vars]**(https://catLegendbot.gitbook.io/catLegendbot/data-vars-setup)",
         "usage": [
-            "{tr}setdb <var name> <var value>",
-            "{tr}getdb <var name>",
-            "{tr}deldb <var name>",
+            "{tr}setdv <var name> <var value>",
+            "{tr}getdv <var name>",
+            "{tr}deldv <var name>",
         ],
         "examples": [
-            "{tr}setdb ALIVE_PIC <pic link>",
-            "{tr}setdb ALIVE_PIC <pic link 1> <pic link 2>",
-            "{tr}getdb ALIVE_PIC",
-            "{tr}deldb ALIVE_PIC",
+            "{tr}setdv ALIVE_PIC <pic link>",
+            "{tr}setdv ALIVE_PIC <pic link 1> <pic link 2>",
+            "{tr}getdv ALIVE_PIC",
+            "{tr}deldv ALIVE_PIC",
         ],
     },
 )
-async def bad(event):  # sourcery no-metrics
+async def bad(event):  # sourcery no-metrics  # sourcery skip: low-code-quality
     "To manage vars in database"
     cmd = event.pattern_match.group(1).lower()
     vname = event.pattern_match.group(2)
@@ -105,10 +100,10 @@ async def bad(event):  # sourcery no-metrics
                 if not vinfo or vinfo != "Me":
                     return await eod(
                         event,
-                        "**To save your Current Profile info Set the value:**\\n `.setdv DEFAULT_USER Me`",
+                        "**To save your Current Profile info Set the value:**\\n `.setdb DEFAULT_USER Me`",
                     )
 
-                USERINFO = await legend.get_entity(legebd.uid)
+                USERINFO = await legend.get_entity(legend.uid)
                 FULL_USERINFO = (await legend(GetFullUserRequest(legend.uid))).full_user
                 addgvar("FIRST_NAME", USERINFO.first_name)
                 addgvar("DEFAULT_NAME", USERINFO.first_name)
@@ -128,7 +123,7 @@ async def bad(event):  # sourcery no-metrics
                     photos = await legend.get_profile_photos(legend.uid)
                     myphoto = await legend.download_media(photos[0])
                     myphoto_urls = upload_file(myphoto)
-                    addgvar("DEFAULT_PIC", f"https://telegra.ph{myphoto_urls[0]}")
+                    addgvar("DEFAULT_PIC", f"https://graph.org{myphoto_urls[0]}")
                 except IndexError:
                     if gvarstatus("DEFAULT_PIC"):
                         delgvar("DEFAULT_PIC")
@@ -137,8 +132,8 @@ async def bad(event):  # sourcery no-metrics
                 usrphoto = gvarstatus("DEFAULT_PIC") or None
                 vinfo = f'**Name:** `{gvarstatus("DEFAULT_NAME")}`\n**First Name:** `{gvarstatus("FIRST_NAME")}`\n**Last Name:** `{usrln}`\n**Bio:** `{usrbio}`\n**Photo:** `{usrphoto}`'
             else:
-                if not vinfo and vname == "ALIVE_TEMPLATE":
-                    return await eod(event, "Check @LegendBot_Alive")
+                if not vinfo and vname in ["ALIVE_TEMPLATE", "PING_TEMPLATE"]:
+                    return await eod(event, "Check @lol_alive")
                 if not vinfo:
                     return await eod(
                         event,
@@ -152,14 +147,14 @@ async def bad(event):  # sourcery no-metrics
                         return await eod(event, "**Give me a correct link...**")
                     elif (("PIC" in vname) or ("pic" in vname)) and not url(i):
                         return await eod(event, "**Give me a correct link...**")
-                    elif (
-                        vname == "DIGITAL_PIC"
-                        or vname == "DEFAULT_PIC"
-                        or vname == "BOT_START_PIC"
-                    ) and url(i):
+                    elif vname in [
+                        "DIGITAL_PIC",
+                        "DEFAULT_PIC",
+                        "BOT_START_PIC",
+                    ] and url(i):
                         vinfo = i
                         break
-                    elif not "PIC" in vname:
+                    elif "PIC" not in vname:
                         break
                 if vname == "DEFAULT_BIO" and len(vinfo) > 70:
                     return await eor(
@@ -209,14 +204,15 @@ async def bad(event):  # sourcery no-metrics
 
 
 @legend.legend_cmd(
-    pattern="custom (pmpermit|pmblock|startmsg)$",
+    pattern="custom (pmpermit|pmpic|pmblock|startmsg)$",
     command=("custom", menu_category),
     info={
-        "header": "To customize your LegendUserBot.",
+        "header": "To customize your LegendUserbot.",
         "options": {
             "pmpermit": "To customize pmpermit text. ",
             "pmblock": "To customize pmpermit block message.",
             "startmsg": "To customize startmsg of bot when some one started it.",
+            "pmpic": "To customize pmpermit pic. Reply to media url or text containing media.",
         },
         "custom": {
             "{mention}": "mention user",
@@ -234,12 +230,14 @@ async def bad(event):  # sourcery no-metrics
             "{warns}": "warns",
             "{remwarns}": "remaining warns",
         },
-        "usage": "{tr}custom <option> reply",
+        "usage": [
+            "{tr}custom <option> reply",
+        ],
         "NOTE": "You can set,fetch or delete these by `{tr}setdv` , `{tr}getdv` & `{tr}deldv` as well.",
     },
 )
-async def custom_LegendUserBot(event):
-    "To customize your LegendUserBot."
+async def custom_legenduserbot(event):
+    "To customize your LegendUserbot."
     reply = await event.get_reply_message()
     text = None
     if reply:
@@ -256,7 +254,7 @@ async def custom_LegendUserBot(event):
     if input_str == "pmpic":
         urls = extractor.find_urls(reply.text)
         if not urls:
-            return await eor(event, "`the given link is not supported`", 5)
+            return await eod(event, "`the given link is not supported`", 5)
         text = " ".join(urls)
         addgvar("pmpermit_pic", text)
     await eor(event, f"__Your custom {input_str} has been updated__")
@@ -273,7 +271,7 @@ async def custom_LegendUserBot(event):
     pattern="delcustom (pmpermit|pmpic|pmblock|startmsg)$",
     command=("delcustom", menu_category),
     info={
-        "header": "To delete costomization of your CatUserbot.",
+        "header": "To delete costomization of your LegendUserbot.",
         "options": {
             "pmpermit": "To delete custom pmpermit text",
             "pmblock": "To delete custom pmpermit block message",
@@ -283,11 +281,11 @@ async def custom_LegendUserBot(event):
         "usage": [
             "{tr}delcustom <option>",
         ],
-        "NOTE": "You can set,fetch or delete these by `{tr}setdb` , `{tr}getdb` & `{tr}deldb` as well.",
+        "NOTE": "You can set,fetch or delete these by `{tr}setdv` , `{tr}getdv` & `{tr}deldv` as well.",
     },
 )
-async def custom_ksks(event):
-    "To delete costomization of your CatUserbot."
+async def custom_legenduserbot(event):
+    "To delete costomization of your LegendUserbot."
     input_str = event.pattern_match.group(1)
     if input_str == "pmpermit":
         if gvarstatus("pmpermit_txt") is None:

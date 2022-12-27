@@ -28,9 +28,9 @@ if Config.PLUGIN_CHANNEL:
             )
             path1 = Path(downloaded_file_name)
             shortname = path1.stem
-            type = True
+            flag = True
             check = 0
-            while type:
+            while flag:
                 try:
                     load_module(shortname.replace(".py", ""))
                     break

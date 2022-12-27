@@ -4,13 +4,12 @@ import requests
 from googletrans import LANGUAGES
 
 from ..Config import Config
-from ..core.managers import eor
+from ..core.managers import eod, eor
 from ..helpers.functions import getTranslate
 from ..sql_helper.globals import gvarstatus
-from . import _legendtools, convert_toimage, legend, soft_deEmojify
+from . import Convert, legend, soft_deEmojify
 
 menu_category = "utils"
-from googletrans import LANGUAGES
 
 
 async def ocr_space_file(
@@ -63,21 +62,22 @@ async def ocr(event):
         os.makedirs(Config.TEMP_DIR)
     cmd = event.pattern_match.group(1)
     lang_code = event.pattern_match.group(2)
-    output_file = os.path.join(Config.TEMP_DIR, "ocr.jpg")
-    try:
-        output = await _legendtools.media_to_pic(event, reply)
-        outputt = convert_toimage(output[1], filename=output_file)
-    except AttributeError:
-        await legendevent.edit("`Couldn't read it.. you sure this readable !?`")
-    test_file = await ocr_space_file(filename=output_file, language=lang_code)
+    output_file = await Convert.to_image(
+        event, reply, dirct="./temp", file="image.png", rgb=True, noedits=True
+    )
+    if not output_file[1]:
+        return await eod(
+            legendevent, "`Couldn't find image. Are you sure you replied to image?`"
+        )
+    test_file = await ocr_space_file(filename=output_file[1], language=lang_code)
     try:
         ParsedText = test_file["ParsedResults"][0]["ParsedText"]
     except BaseException:
-        await legendevent.edit("`Couldn't read it.`\n`I guess I need new glasses.`")
+        await eod(legendevent, "`Couldn't read it.`\n`I guess I need new glasses.`")
     else:
         if cmd == "":
-            await legendevent.edit(
-                f"**Here's what I could read from it:**\n\n`{ParsedText}`"
+            await eor(
+                legendevent, f"**Here's what I could read from it:**\n\n`{ParsedText}`"
             )
         if cmd == "t":
             TRT_LANG = gvarstatus("TOCR_LANG") or "en"
@@ -86,14 +86,16 @@ async def ocr(event):
                     soft_deEmojify(ParsedText), dest=TRT_LANG
                 )
             except ValueError:
-                return await eod(trans, "`Invalid destination language.`", time=5)
+                return await eod(legendevent, "`Invalid destination language.`")
             source_lan = LANGUAGES[f"{reply_text.src.lower()}"]
             transl_lan = LANGUAGES[f"{reply_text.dest.lower()}"]
             tran_text = f"📜**Translate :-\nFrom {source_lan.title()}({reply_text.src.lower()}) to {transl_lan.title()}({reply_text.dest.lower()}) :**\n\n`{reply_text.text}`"
-            await legendevent.edit(
-                f"🧧**Here's what I could read from it:**\n\n`{ParsedText}`\n\n{tran_text}"
+            await eor(
+                legendevent,
+                f"🧧**Here's what I could read from it:**\n\n`{ParsedText}`\n\n{tran_text}",
             )
-    os.remove(output_file)
+    if os.path.exists(output_file[1]):
+        os.remove(output_file[1])
 
 
 @legend.legend_cmd(

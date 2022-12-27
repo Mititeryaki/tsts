@@ -1,23 +1,17 @@
+# Credits of Plugin @ViperAdnan and @mrconfused(revert)[will add sql soon]
 import html
 
 from telethon.tl import functions
 from telethon.tl.functions.users import GetFullUserRequest
 
 from ..Config import Config
-from . import (
-    ALIVE_NAME,
-    BOTLOG,
-    BOTLOG_CHATID,
-    eod,
-    get_user_from_event,
-    gvarstatus,
-    legend,
-)
+from ..sql_helper.globals import gvarstatus
+from . import ALIVE_NAME, BOTLOG, BOTLOG_CHATID, eod, get_user_from_event, legend
 
 menu_category = "utils"
 DEFAULTUSER = gvarstatus("FIRST_NAME") or ALIVE_NAME
 DEFAULTUSERBIO = (
-    gvarstatus("DEFAULT_BIO") or "I Am Legend Because I Am A User Of @LegendBot_XD"
+    gvarstatus("DEFAULT_BIO") or "sıɥʇ ǝpoɔǝp uǝɥʇ llıʇu∩ ˙ǝɔɐds ǝʇɐʌıɹd ǝɯos ǝɯ ǝʌı⅁"
 )
 
 
@@ -29,7 +23,7 @@ DEFAULTUSERBIO = (
         "usage": "{tr}clone <username/userid/reply>",
     },
 )
-async def clone(event):
+async def _(event):
     "To clone account of mentiond user or replied user"
     replied_user, error_i_a = await get_user_from_event(event)
     if replied_user is None:
@@ -70,7 +64,7 @@ async def clone(event):
     command=("revert", menu_category),
     info={
         "header": "To revert back to your original name , bio and profile pic",
-        "note": "For proper Functioning of this command you need to set AUTONAME and DEFAULT_BIO with your profile name and bio respectively.",
+        "note": "For proper Functioning of this command you need to set DEFAULT_USER in Database",
         "usage": "{tr}revert",
     },
 )

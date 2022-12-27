@@ -1,12 +1,11 @@
 """
-Thenks goes to Emily ( The creater of Poto cmd) from ftg Legendbot
+Thenks goes to Emily ( The creater of Poto cmd) from ftg userbot
 """
 
 from PIL import Image, ImageFilter, UnidentifiedImageError
 
-from Legendbot import legend
-
 from ..core.managers import eod, eor
+from . import legend, reply_id
 
 menu_category = "extra"
 
@@ -40,9 +39,9 @@ async def potocmd(event):
     else:
         photos = await event.client.get_profile_photos(chat)
         u = False
-    if uid.strip() == "":
+    if not uid.strip():
         uid = 1
-        if int(uid) > (len(photos)):
+        if uid > (len(photos)):
             return await eod(
                 event, "`No photo found of this NIBBA / NIBBI. Now u Die!`"
             )
@@ -69,7 +68,7 @@ async def potocmd(event):
         except BaseException:
             await eor(event, "`Are you comedy me ?`")
             return
-        if int(uid) > (len(photos)):
+        if uid > (len(photos)):
             return await eod(
                 event, "`No photo found of this NIBBA / NIBBI. Now u Die!`"
             )

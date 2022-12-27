@@ -6,7 +6,7 @@ from telethon.utils import get_display_name
 from Legendbot import legend
 
 from ..core.managers import eor
-from ..sql_helper.filters_sql import (
+from ..sql_helper.filter_sql import (
     add_filter,
     get_filters,
     remove_all_filters,
@@ -26,9 +26,11 @@ async def filter_incoming_handler(event):  # sourcery no-metrics
     if not filters:
         return
     a_user = await event.get_sender()
-    await event.get_chat()
+    chat = await event.get_chat()
     me = await event.client.get_me()
     title = get_display_name(await event.get_chat()) or "this chat"
+    participants = await event.client.get_participants(chat)
+    count = len(participants)
     mention = f"[{a_user.first_name}](tg://user?id={a_user.id})"
     my_mention = f"[{me.first_name}](tg://user?id={me.id})"
     first = a_user.first_name
@@ -59,6 +61,7 @@ async def filter_incoming_handler(event):  # sourcery no-metrics
                 filter_msg.format(
                     mention=mention,
                     title=title,
+                    count=count,
                     first=first,
                     last=last,
                     fullname=fullname,
@@ -84,6 +87,7 @@ async def filter_incoming_handler(event):  # sourcery no-metrics
         "option": {
             "{mention}": "To mention the user",
             "{title}": "To get chat name in message",
+            "{count}": "To get group members",
             "{first}": "To use user first name",
             "{last}": "To use user last name",
             "{fullname}": "To use user full name",
@@ -95,7 +99,7 @@ async def filter_incoming_handler(event):  # sourcery no-metrics
             "{my_mention}": "To mention myself",
             "{my_username}": "To use my username.",
         },
-        "usage": "{tr}filter <keyword> \n<respond text>",
+        "usage": "{tr}filter <keyword>",
     },
 )
 async def add_new_filter(event):
@@ -144,7 +148,7 @@ async def add_new_filter(event):
     command=("filters", menu_category),
     info={
         "header": "To list all filters in that chat.",
-        "description": "Lists all active (of your Legendbot) filters in a chat.",
+        "description": "Lists all active (of your userbot) filters in a chat.",
         "usage": "{tr}filters",
     },
 )
@@ -176,9 +180,9 @@ async def remove_a_filter(event):
     "Stops the specified keyword."
     filt = event.pattern_match.group(1)
     if not remove_filter(event.chat_id, filt):
-        await event.edit("Filter` {} `doesn't exist.".format(filt))
+        await event.edit(f"Filter` {filt} `doesn't exist.")
     else:
-        await event.edit("Filter `{} `was deleted successfully".format(filt))
+        await event.edit(f"Filter `{filt} `was deleted successfully")
 
 
 @legend.legend_cmd(
@@ -191,8 +195,7 @@ async def remove_a_filter(event):
 )
 async def on_all_snip_delete(event):
     "To delete all filters in that group."
-    filters = get_filters(event.chat_id)
-    if filters:
+    if filters := get_filters(event.chat_id):
         remove_all_filters(event.chat_id)
         await eor(event, "filters in current chat deleted successfully")
     else:

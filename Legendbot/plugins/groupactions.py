@@ -1,3 +1,4 @@
+import contextlib
 from asyncio import sleep
 
 from telethon.errors import (
@@ -174,7 +175,7 @@ async def _(event):
     legendevent = await eor(event, "__Unbanning all banned accounts in this group.__")
     succ = 0
     total = 0
-    type = False
+    flag = False
     await event.get_chat()
     async for i in event.client.iter_participants(
         event.chat_id, filter=ChannelParticipantsKicked, aggressive=True
@@ -190,22 +191,21 @@ async def _(event):
             await legendevent.edit(
                 f"__A wait of {readable_time(e.seconds)} needed again to continue the process.__"
             )
+
             await sleep(e.seconds + 5)
         except Exception as ex:
             await legendevent.edit(str(ex))
         else:
             succ += 1
-            if type:
+            if flag:
                 await sleep(2)
             else:
                 await sleep(1)
-            try:
+            with contextlib.suppress(MessageNotModifiedError):
                 if succ % 10 == 0:
                     await legendevent.edit(
                         f"__Unbanning all banned accounts...,\n{succ} accounts are unbanned untill now.__"
                     )
-            except MessageNotModifiedError:
-                pass
     await legendevent.edit(
         f"**Unbanned :**__{succ}/{total} in the chat {get_display_name(await event.get_chat())}__"
     )
@@ -218,7 +218,7 @@ async def _(event):
     info={
         "header": "To check deleted accounts and clean",
         "description": "Searches for deleted accounts in a group. Use `.zombies clean` to remove deleted accounts from the group.",
-        "type": {"-r": "Use this for check users from banned and restricted users"},
+        "flag": {"-r": "Use this for check users from banned and restricted users"},
         "usage": [
             "{tr}zombies",
             "{tr}zombies clean",
@@ -229,14 +229,15 @@ async def _(event):
     groups_only=True,
 )
 async def rm_deletedacc(show):  # sourcery no-metrics
+    # sourcery skip: low-code-quality
     "To check deleted accounts and clean"
-    type = show.pattern_match.group(1)
+    flag = show.pattern_match.group(1)
     con = show.pattern_match.group(2).lower()
     del_u = 0
     del_status = "`No zombies or deleted accounts found in this group, Group is clean`"
     if con != "clean":
         event = await eor(show, "`Searching for ghost/deleted/zombie accounts...`")
-        if type != " -r":
+        if flag != " -r":
             async for user in show.client.iter_participants(show.chat_id):
                 if user.deleted:
                     del_u += 1
@@ -275,7 +276,7 @@ async def rm_deletedacc(show):  # sourcery no-metrics
     event = await eor(show, "`Deleting deleted accounts...\nOh I can do that?!?!`")
     del_u = 0
     del_a = 0
-    if type != " -r":
+    if flag != " -r":
         async for user in show.client.iter_participants(show.chat_id):
             if user.deleted:
                 try:
@@ -295,6 +296,7 @@ async def rm_deletedacc(show):  # sourcery no-metrics
                     await event.edit(
                         "__Ok the wait is over .I am cleaning all deleted accounts in this group__"
                     )
+
                 except UserAdminInvalidError:
                     del_a += 1
                 except Exception as e:
@@ -333,6 +335,7 @@ async def rm_deletedacc(show):  # sourcery no-metrics
                     await event.edit(
                         "__Ok the wait is over .I am cleaning all deleted accounts in restricted or banned users list in this group__"
                     )
+
                 except Exception as e:
                     LOGS.error(str(e))
                     del_a += 1
@@ -384,7 +387,7 @@ async def rm_deletedacc(show):  # sourcery no-metrics
     },
     groups_only=True,
 )
-async def _(event):  # sourcery no-metrics
+async def _(event):  # sourcery no-metrics  # sourcery skip: low-code-quality
     "To get breif summary of members in the group.1 11"
     input_str = event.pattern_match.group(1)
     if input_str:
@@ -494,26 +497,26 @@ async def _(event):  # sourcery no-metrics
             n += 1
     if input_str:
         required_string = """Kicked {} / {} users
-🗒Deleted Accounts: {}
-🚩UserStatusEmpty: {}
-🚩UserStatusLastMonth: {}
-🚩UserStatusLastWeek: {}
-🚩UserStatusOffline: {}
-🚩UserStatusOnline: {}
-🚩UserStatusRecently: {}
-🚩Bots: {}
-🚩None: {}"""
+Deleted Accounts: {}
+UserStatusEmpty: {}
+UserStatusLastMonth: {}
+UserStatusLastWeek: {}
+UserStatusOffline: {}
+UserStatusOnline: {}
+UserStatusRecently: {}
+Bots: {}
+None: {}"""
         await et.edit(required_string.format(c, p, d, y, m, w, o, q, r, b, n))
         await sleep(5)
     await et.edit(
         """Total: {} users
-🗒Deleted Accounts: {}
-🚩UserStatusEmpty: {}
-🚩UserStatusLastMonth: {}
-🚩UserStatusLastWeek: {}
-🚩UserStatusOffline: {}
-🚩UserStatusOnline: {}
-🚩UserStatusRecently: {}
+Deleted Accounts: {}
+UserStatusEmpty: {}
+UserStatusLastMonth: {}
+UserStatusLastWeek: {}
+UserStatusOffline: {}
+UserStatusOnline: {}
+UserStatusRecently: {}
 Bots: {}
 None: {}""".format(
             p, d, y, m, w, o, q, r, b, n

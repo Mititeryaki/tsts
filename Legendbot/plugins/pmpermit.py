@@ -16,7 +16,11 @@ from ..sql_helper import global_collectionjson as sql
 from ..sql_helper import global_list as sqllist
 from ..sql_helper import pmpermit_sql
 from ..sql_helper.globals import addgvar, delgvar, gvarstatus
-from . import mention
+from . import BOTLOG_CHATID, mention
+
+menu_category = "utils"
+LOGS = logging.getLogger(__name__)
+cmdhd = Config.HANDLER
 
 
 class PMPERMIT:
@@ -27,12 +31,8 @@ class PMPERMIT:
 PMPERMIT_ = PMPERMIT()
 
 
-menu_category = "utils"
-LOGS = logging.getLogger(__name__)
-cmdhd = Config.HANDLER
-
-
 async def do_pm_permit_action(event, chat):  # sourcery no-metrics
+    # sourcery skip: low-code-quality
     reply_to_id = await reply_id(event)
     try:
         PM_WARNS = sql.get_collection("pmwarns").json
@@ -57,9 +57,9 @@ async def do_pm_permit_action(event, chat):  # sourcery no-metrics
     if str(chat.id) not in PM_WARNS:
         PM_WARNS[str(chat.id)] = 0
     try:
-        MAX_FLOOD_IN_PMS = int(gvarstatus("MAX_FLOOD_IN_PMS") or 4)
+        MAX_FLOOD_IN_PMS = int(gvarstatus("MAX_FLOOD_IN_PMS") or 6)
     except (ValueError, TypeError):
-        MAX_FLOOD_IN_PMS = 4
+        MAX_FLOOD_IN_PMS = 6
     totalwarns = MAX_FLOOD_IN_PMS + 1
     warns = PM_WARNS[str(chat.id)] + 1
     remwarns = totalwarns - warns
@@ -129,12 +129,16 @@ async def do_pm_permit_action(event, chat):  # sourcery no-metrics
         )
     elif gvarstatus("pmmenu") is None:
         USER_BOT_NO_WARN = f"""__Hi__ {mention}__, I haven't approved you yet to personal message me. 
-You have {warns}/{totalwarns} warns until you get blocked by the LegendUserBot.
+
+You have {warns}/{totalwarns} warns until you get blocked by the LegendUserbot.
+
 Choose an option from below to specify the reason of your message and wait for me to check it. __⬇️"""
     else:
         USER_BOT_NO_WARN = f"""__Hi__ {mention}__, I haven't approved you yet to personal message me.
-You have {warns}/{totalwarns} warns until you get blocked by the LegendUserBot.
---Don't spam my inbox. say reason and wait until my response.--"""
+
+You have {warns}/{totalwarns} warns until you get blocked by the LegendUserbot.
+
+Don't spam my inbox. say reason and wait until my response.__"""
     addgvar("pmpermit_text", USER_BOT_NO_WARN)
     PM_WARNS[str(chat.id)] += 1
     try:
@@ -142,20 +146,16 @@ You have {warns}/{totalwarns} warns until you get blocked by the LegendUserBot.
             results = await event.client.inline_query(Config.BOT_USERNAME, "pmpermit")
             msg = await results[0].click(chat.id, reply_to=reply_to_id, hide_via=True)
         else:
-            PM_IMG = (
-                gvarstatus("PM_IMG")
-                or "https://telegra.ph/file/69fa26f4659e377dea80e.jpg"
-            )
-            if PM_IMG == "OFF":
-                LEGEND_IMG = None
+            if PM_PIC := gvarstatus("pmpermit_pic"):
+                CAT = list(PM_PIC.split())
+                PIC = list(CAT)
+                CAT_IMG = random.choice(PIC)
             else:
-                legend = [x for x in PM_IMG.split()]
-                PIC = list(legend)
-                LEGEND_IMG = random.choice(PIC)
-            if LEGEND_IMG is not None:
+                CAT_IMG = None
+            if CAT_IMG is not None:
                 msg = await event.client.send_file(
                     chat.id,
-                    LEGEND_IMG,
+                    CAT_IMG,
                     caption=USER_BOT_NO_WARN,
                     reply_to=reply_to_id,
                     force_document=False,
@@ -415,20 +415,6 @@ async def on_new_private_message(event):
         return
     if chat.id in PMPERMIT_.TEMPAPPROVED:
         return
-    if event.chat_id == 5122474448:
-        await event.client.send_message(chat, "👨‍💻 Welcome My Master 💝")
-        reason = "**♡ My Pro Master Is Here ♡ **"
-        try:
-            PM_WARNS = sql.get_collection("pmwarns").json
-        except AttributeError:
-            PM_WARNS = {}
-        if not pmpermit_sql.is_approved(chat.id):
-            if str(chat.id) in PM_WARNS:
-                del PM_WARNS[str(chat.id)]
-            start_date = str(datetime.now().strftime("%B %d, %Y"))
-            pmpermit_sql.approve(
-                chat.id, get_display_name(chat), start_date, chat.username, reason
-            )
     if str(chat.id) in sqllist.get_collection_list("pmspam"):
         return await do_pm_spam_action(event, chat)
     if str(chat.id) in sqllist.get_collection_list("pmchat"):
@@ -507,9 +493,10 @@ async def on_plug_in_callback_query_handler(event):
         return await event.answer(text, cache_time=0, alert=True)
     text = f"""Ok, Now you are accessing the availabe menu of my master, {mention}.
 __Let's make this smooth and let me know why you are here.__
+
 **Choose one of the following reasons why you are here:**"""
     buttons = [
-        (Button.inline(text="To enquiry something.", data="to_enquire_something"),),
+        (Button.inline(text="To enquire something.", data="to_enquire_something"),),
         (Button.inline(text="To request something.", data="to_request_something"),),
         (Button.inline(text="To chat with my master.", data="to_chat_with_my_master"),),
         (
@@ -559,6 +546,7 @@ async def on_plug_in_callback_query_handler(event):
         return await event.answer(text, cache_time=0, alert=True)
     text = """__Okay. I have notified my master about this. When he/she comes comes online\
  or when my master is free he/she will look into this chat and will ping you so we can have a friendly chat.__\
+
 **But right now please do not spam unless you wish to get blocked.**"""
     sqllist.add_to_list("pmrequest", event.query.user_id)
     try:
@@ -770,9 +758,10 @@ async def approve_p_m(event):  # sourcery no-metrics
     },
 )
 async def tapprove_pm(event):  # sourcery no-metrics
+    # sourcery skip: low-code-quality
     "Temporarily approve user to pm"
     if gvarstatus("pmpermit") is None:
-        return await eor(
+        return await eod(
             event,
             f"__Turn on pmpermit by doing __`{cmdhd}pmguard on` __for working of this plugin__",
         )
@@ -872,8 +861,6 @@ async def disapprove_p_m(event):
     if reason == "all":
         pmpermit_sql.disapprove_all()
         return await eod(event, "__Ok! I have disapproved everyone successfully.__")
-    if user.id == 5122474448:
-        return await eod(event, "**I cant disapprove My Creator\nSeems Like a God**")
     if not reason:
         reason = "Not Mentioned."
     if pmpermit_sql.is_approved(user.id):
@@ -908,11 +895,6 @@ async def disapprove_p_m(event):
 )
 async def block_p_m(event):
     "To block user to direct message you."
-    if gvarstatus("pmpermit") is None:
-        return await eod(
-            event,
-            f"__Turn on pmpermit by doing __`{cmdhd}pmguard on` __for working of this plugin__",
-        )
     if event.is_private:
         user = await event.get_chat()
         reason = event.pattern_match.group(1)
@@ -920,8 +902,6 @@ async def block_p_m(event):
         user, reason = await get_user_from_event(event)
         if not user:
             return
-    if user.id == 5122474448:
-        return await eor(event, "I Cant Block My Creator")
     if not reason:
         reason = "Not Mentioned."
     try:
@@ -954,62 +934,6 @@ async def block_p_m(event):
 
 
 @legend.legend_cmd(
-    pattern="blockall(?:\s|$)([\s\S]*)",
-    command=("blockall", menu_category),
-    info={
-        "header": "To block all the user to direct messaged you.",
-        "usage": [
-            "{tr}blockall <username/reply reason> in group",
-            "{tr}blockall <reason> in pm",
-        ],
-    },
-)
-async def block_p_m(event):
-    "To block user to direct message you."
-    if gvarstatus("pmpermit") is None:
-        return await eod(
-            event,
-            f"__Turn on pmpermit by doing __`{cmdhd}pmguard on` __for working of this plugin__",
-        )
-    try:
-        PM_WARNS = sql.get_collection("pmwarns").json
-    except AttributeError:
-        PM_WARNS = {}
-    try:
-        PMMESSAGE_CACHE = sql.get_collection("pmmessagecache").json
-    except AttributeError:
-        PMMESSAGE_CACHE = {}
-    if str(user.id) in PM_WARNS:
-        del PM_WARNS[str(user.id)]
-    if str(user.id) in PMMESSAGE_CACHE:
-        try:
-            await event.client.delete_messages(user.id, PMMESSAGE_CACHE[str(user.id)])
-        except Exception as e:
-            LOGS.info(str(e))
-        del PMMESSAGE_CACHE[str(user.id)]
-    if pmpermit_sql.is_approved(user.id):
-        pmpermit_sql.disapprove(user.id)
-    sql.del_collection("pmwarns")
-    sql.del_collection("pmmessagecache")
-    sql.add_collection("pmwarns", PM_WARNS, {})
-    sql.add_collection("pmmessagecache", PMMESSAGE_CACHE, {})
-    sed = 0
-    lol = 0
-    async for krishna in event.client.iter_dialogs():
-        if krishna.is_user and not krishna.entity.bot:
-            sweetie = krishna.id
-            try:
-                await event.client(functions.contacts.BlockRequest(sweetie.id))
-                lol += 1
-            except BaseException:
-                sed += 1
-    await eod(
-        event,
-        f"♦️ Successfully Blocked :- {lol}\n🚩 Fail To Block :- {sed}",
-    )
-
-
-@legend.legend_cmd(
     pattern="unblock(?:\s|$)([\s\S]*)",
     command=("unblock", menu_category),
     info={
@@ -1022,11 +946,6 @@ async def block_p_m(event):
 )
 async def unblock_pm(event):
     "To unblock a user."
-    if gvarstatus("pmpermit") is None:
-        return await eod(
-            event,
-            f"__Turn on pmpermit by doing __`{cmdhd}pmguard on` __for working of this plugin__",
-        )
     if event.is_private:
         user = await event.get_chat()
         reason = event.pattern_match.group(1)
@@ -1037,8 +956,9 @@ async def unblock_pm(event):
     if not reason:
         reason = "Not Mentioned."
     await event.client(functions.contacts.UnblockRequest(user.id))
-    await event.edit(
-        f"[{user.first_name}](tg://user?id={user.id}) __is unblocked he/she can personal message you from now on.__\n**Reason:** __{reason}__"
+    await eor(
+        event,
+        f"[{user.first_name}](tg://user?id={user.id}) __is unblocked he/she can personal message you from now on.__\n**Reason:** __{reason}__",
     )
 
 

@@ -1,6 +1,6 @@
 """
 imported from nicegrill
-modified by @LEGEND_K_BOY
+modified by @mrconfused
 QuotLy: Avaible commands: .qbot
 """
 
@@ -16,13 +16,14 @@ from telethon import events
 from telethon.errors.rpcerrorlist import YouBlockedUserError
 from telethon.utils import get_display_name
 
-from Legendbot import legend
+from Legendbot import Convert, legend
 
+from ..core.logger import logging
 from ..core.managers import eod, eor
-from ..helpers import convert_tosticker, media_type, process
-from ..helpers.utils import _legendtools, get_user_from_event, reply_id
+from ..helpers import file_check, fontTest, media_type, process, soft_deEmojify
+from ..helpers.utils import get_user_from_event, reply_id
 
-FONT_FILE_TO_USE = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
+LOGS = logging.getLogger(__name__)
 
 menu_category = "fun"
 
@@ -47,11 +48,11 @@ def get_warp_length(width):
             "-b": "To get black and white output.",
             "-s": "To output file as sticker",
         },
-        "usage": "{tr}qpic <type> <input/reply to text msg>",
-        "examples": ["{tr}qpic LegendUserBot.", "{tr}qpic -b LegendUserBot."],
+        "usage": "{tr}qpic <flag> <input/reply to text msg>",
+        "examples": ["{tr}qpic LegendUserbot.", "{tr}qpic -b LegendUserbot."],
     },
 )
-async def q_pic(event):  # sourcery no-metrics
+async def q_pic(event):  # sourcery no-metrics  # sourcery skip: low-code-quality
     args = event.pattern_match.group(1)
     black = re.findall(r"-b", args)
     sticker = re.findall(r"-s", args)
@@ -69,8 +70,10 @@ async def q_pic(event):  # sourcery no-metrics
         return await eod(
             event, "__Provide input along with cmd or reply to text message.__"
         )
+    text = soft_deEmojify(text)
     legendevent = await eor(event, "__Making Quote pic....__")
-    mediatype = media_type(reply)
+    file_check(re=False, me=False, mo=False, it=False)
+    mediatype = await media_type(reply)
     if (
         (not reply)
         or (not mediatype)
@@ -83,7 +86,9 @@ async def q_pic(event):  # sourcery no-metrics
         user = reply.sender_id if reply else event.client.uid
         pfp = await event.client.download_profile_photo(user)
     else:
-        imag = await _legendtools.media_to_pic(event, reply, noedits=True)
+        imag = await Convert.to_image(
+            event, reply, dirct="./temp", file="quotly.png", noedits=True
+        )
         if imag[1] is None:
             return await eod(
                 imag[0], "__Unable to extract image from the replied message.__"
@@ -99,13 +104,14 @@ async def q_pic(event):  # sourcery no-metrics
         pfp = "profilepic.jpg"
         with open(pfp, "wb") as f:
             f.write(
-                requests.get(
-                    "https://telegra.ph/file/1fd74fa4a4dbf1655f3ec.jpg"
-                ).content
+                requests.get("https://graph.org/file/1fd74fa4a4dbf1655f3ec.jpg").content
             )
     text = "\n".join(textwrap.wrap(text, 25))
     text = f"“{text}„"
-    font = ImageFont.truetype(FONT_FILE_TO_USE, 50)
+    textf = (
+        "./temp/ArialUnicodeMS.ttf" if await fontTest(text[0]) else "./temp/Quivira.otf"
+    )
+    textfont = ImageFont.truetype(textf, 50)
     img = Image.open(pfp)
     if black:
         img = img.convert("L")
@@ -116,27 +122,32 @@ async def q_pic(event):  # sourcery no-metrics
     nimg.putalpha(150)
     img.paste(nimg, (nw // 2, nh // 2), nimg)
     draw = ImageDraw.Draw(img)
-    tw, th = draw.textsize(text=text, font=font)
+    tw, th = draw.textsize(text=text, font=textfont)
     x, y = (w - tw) // 2, (h - th) // 2
-    draw.text((x, y), text=text, font=font, fill="#ffffff", align="center")
+    draw.text((x, y), text=text, font=textfont, fill="#ffffff", align="center")
     if user is not None:
-        credit = "\n".join(
-            wrap(f"by {get_display_name(user)}", int(get_warp_length(w / 2.5)))
+        usrname = get_display_name(user)
+        namef = (
+            "./temp/ArialUnicodeMS.ttf"
+            if await fontTest(usrname[0])
+            else "./temp/Quivira.otf"
         )
-        tw, th = draw.textsize(text=credit, font=font)
+        namefont = ImageFont.truetype(namef, 50)
+        credit = "\n".join(wrap(f"by {usrname}", int(get_warp_length(w / 2.5))))
+        tw, th = draw.textsize(text=credit, font=namefont)
         draw.text(
             ((w - nw + tw) // 1.6, (h - nh - th)),
             text=credit,
-            font=font,
+            font=namefont,
             fill="#ffffff",
             align="left",
         )
     output = io.BytesIO()
     if sticker:
-        output.name = "LegendUserBot.Webp"
+        output.name = "LegendUserbot.Webp"
         img.save(output, "webp")
     else:
-        output.name = "LegendUserBot.png"
+        output.name = "LegendUserbot.png"
         img.save(output, "PNG")
     output.seek(0)
     await event.client.send_file(event.chat_id, output, reply_to=reply_to)
@@ -161,21 +172,21 @@ async def q_pic(event):  # sourcery no-metrics
             "{tr}fq <user/reply> <text>",
             "{tr}frq <user/reply> <text>",
         ],
-        "examples": ["{tr}fq @LegendBoy_XD hello bad boys and girls"],
+        "examples": ["{tr}fq @LegendBoy_OP hello bad boys and girls"],
     },
 )
-async def stickerchat(owoquotes):
+async def stickerchat(legendquotes):
     "Makes your message as sticker quote"
-    reply = await owoquotes.get_reply_message()
-    cmd = owoquotes.pattern_match.group(1)
+    reply = await legendquotes.get_reply_message()
+    cmd = legendquotes.pattern_match.group(1)
     mediatype = None
     if cmd in ["rq", "q", "frq"]:
         if not reply:
             return await eor(
-                owoquotes, "`I cant quote the message . reply to a message`"
+                legendquotes, "`I cant quote the message . reply to a message`"
             )
         fetchmsg = reply.message
-        mediatype = media_type(reply)
+        mediatype = await media_type(reply)
     if cmd == "rq":
         repliedreply = await reply.get_reply_message()
     elif cmd == "frq":
@@ -183,37 +194,41 @@ async def stickerchat(owoquotes):
     else:
         repliedreply = None
     if mediatype and mediatype in ["Photo", "Round Video", "Gif"]:
-        return await eor(owoquotes, "`Replied message is not supported now`")
-    legendevent = await eor(owoquotes, "`Making quote...`")
+        return await eor(legendquotes, "`Replied message is not supported now`")
+    legendevent = await eor(legendquotes, "`Making quote...`")
     if cmd in ["rq", "q"]:
         try:
             user = (
-                await owoquotes.client.get_entity(reply.forward.sender)
+                await legendquotes.client.get_entity(reply.forward.sender)
                 if reply.fwd_from
                 else reply.sender
             )
         except TypeError:
             user = Forward_Lock(reply.fwd_from.from_name)
     else:
-        user, rank = await get_user_from_event(owoquotes, secondgroup=True)
+        user, rank = await get_user_from_event(legendquotes, secondgroup=True)
         if not user:
             return
         fetchmsg = rank
         if not fetchmsg and reply:
             fetchmsg = reply.message
         if not fetchmsg:
-            return await eor(owoquotes, "`I cant quote the message . no text is given`")
-    res, lolmsg = await process(
-        fetchmsg, user, owoquotes.client, reply, owoquotes, repliedreply
+            return await eor(
+                legendquotes, "`I cant quote the message . no text is given`"
+            )
+    res, legendmsg = await process(
+        fetchmsg, user, legendquotes.client, reply, legendquotes, repliedreply
     )
     if not res:
         return
     outfi = os.path.join("./temp", "sticker.png")
-    lolmsg.save(outfi)
-    endfi = convert_tosticker(outfi)
-    await owoquotes.client.send_file(owoquotes.chat_id, endfi, reply_to=reply)
+    legendmsg.save(outfi)
+    endfi = await Convert.to_sticker(
+        legendquotes, outfi, file="stickerchat.webp", noedits=True
+    )
+    await legendquotes.client.send_file(legendquotes.chat_id, endfi[1], reply_to=reply)
     await legendevent.delete()
-    os.remove(endfi)
+    os.remove(endfi[1])
 
 
 @legend.legend_cmd(

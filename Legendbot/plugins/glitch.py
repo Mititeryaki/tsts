@@ -1,12 +1,17 @@
+"""
+designed By @Krishna_Singhal in userge
+ported to telethon by @mrconfused and @krishna1709
+"""
+
 import os
 
 from glitch_this import ImageGlitcher
 from PIL import Image
 
-from Legendbot import legend
+from Legendbot import Convert, legend
 
 from ..core.managers import eod
-from ..helpers.utils import _legendtools, _legendutils, reply_id
+from ..helpers import reply_id, unsavegif
 
 menu_category = "fun"
 
@@ -32,11 +37,16 @@ async def glitch(event):
     reply = await event.get_reply_message()
     if not reply:
         return await eod(event, "`Reply to supported Media...`")
-    swtid = await reply_id(event)
+    lolid = await reply_id(event)
     if not os.path.isdir("./temp"):
         os.mkdir("./temp")
     legendinput = int(legendinput) if legendinput else 2
-    glitch_file = await _legendtools.media_to_pic(event, reply)
+    glitch_file = await Convert.to_image(
+        event,
+        reply,
+        dirct="./temp",
+        file="glitch.png",
+    )
     if glitch_file[1] is None:
         return await eod(
             glitch_file[0], "__Unable to extract image from the replied message.__"
@@ -47,7 +57,7 @@ async def glitch(event):
         glitched = os.path.join("./temp", "glitched.webp")
         glitch_img = glitcher.glitch_image(img, legendinput, color_offset=True)
         glitch_img.save(glitched)
-        await event.client.send_file(event.chat_id, glitched, reply_to=swtid)
+        await event.client.send_file(event.chat_id, glitched, reply_to=lolid)
     else:
         glitched = os.path.join("./temp", "glitched.gif")
         glitch_img = glitcher.glitch_image(
@@ -63,8 +73,8 @@ async def glitch(event):
             duration=DURATION,
             loop=LOOP,
         )
-        LEGEND = await event.client.send_file(event.chat_id, glitched, reply_to=swtid)
-        await _legendutils.unsavegif(event, LEGEND)
+        krishna = await event.client.send_file(event.chat_id, glitched, reply_to=lolid)
+        await unsavegif(event, krishna)
     await glitch_file[0].delete()
     for files in (glitch_file[1], glitched):
         if files and os.path.exists(files):

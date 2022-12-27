@@ -1,13 +1,13 @@
+# ported from uniborg (@spechide)
 import os
 
 import requests
 
-from Legendbot import legend
+from Legendbot import Convert, legend
 
 from ..Config import Config
 from ..core.managers import eod, eor
 from ..helpers.utils import reply_id
-from . import convert_toimage, convert_tosticker
 
 menu_category = "utils"
 
@@ -48,7 +48,7 @@ def ReTrieveURL(input_url):
     pattern="(rmbg|srmbg)(?:\s|$)([\s\S]*)",
     command=("rmbg", menu_category),
     info={
-        "header": "To remove background of a image/sticker/image link.(remove.bg)",
+        "header": "To remove background of a image/sticker/image link.",
         "options": {
             "rmbg": "to get output as png format",
             "srmbg": "To get output as webp format(sticker).",
@@ -66,7 +66,7 @@ async def remove_background(event):
     if Config.REM_BG_API_KEY is None:
         return await eod(
             event,
-            "You have to set `REM_BG_API_KEY` in Config vars with API token from remove.bg to use this plugin .",
+            "`You have to set REM_BG_API_KEY in Config vars with API token from remove.bg to use this plugin .`",
             10,
         )
     cmd = event.pattern_match.group(1)
@@ -74,38 +74,35 @@ async def remove_background(event):
     message_id = await reply_id(event)
     if event.reply_to_msg_id and not input_str:
         reply_message = await event.get_reply_message()
-        legendevent = await eor(event, "`Analysing this Image/Sticker...`")
-        file_name = os.path.join(Config.TEMP_DIR, "rmbg.png")
-        try:
-            await event.client.download_media(reply_message, file_name)
-        except Exception as e:
-            await eod(legendevent, f"`{e}`", 5)
-            return
-        else:
-            await legendevent.edit("`Removing Background of this media`")
-            file_name = convert_toimage(file_name)
-            response = ReTrieveFile(file_name)
-            os.remove(file_name)
+        legendevent = await eor(event, "`Analysing this Media...`")
+        file_name = await Convert.to_image(
+            event, reply_message, dirct="./temp", file="rmbgimage.png", noedits=True
+        )
+        if not file_name[1]:
+            return await eod(event, "**Error:** __Unable to process with this media__")
+        response = ReTrieveFile(file_name[1])
+        os.remove(file_name[1])
     elif input_str:
         legendevent = await eor(event, "`Removing Background of this media`")
         response = ReTrieveURL(input_str)
     else:
-        await eod(
+        return await eod(
             event,
-            "`Reply to any image or sticker with rmbg/srmbg to get background less png file or webp format or provide image link along with command`",
-            5,
+            "__Reply to any media file with rmbg/srmbg to get background less png file or webp format or provide image link along with command__",
         )
-        return
     contentType = response.headers.get("content-type")
-    remove_bg_image = "backgroundless.png"
-    if "image" in contentType:
-        with open("backgroundless.png", "wb") as removed_bg_file:
-            removed_bg_file.write(response.content)
-    else:
-        await eod(legendevent, f"`{response.content.decode('UTF-8')}`", 5)
-        return
+    remove_bg_image = "./temp/backgroundless.png"
+    if "image" not in contentType:
+        return await eod(legendevent, f"`{response.content.decode('UTF-8')}`", 5)
+    with open("./temp/backgroundless.png", "wb") as file:
+        file.write(response.content)
+    await legendevent.delete()
     if cmd == "srmbg":
-        file = convert_tosticker(remove_bg_image, filename="backgroundless.webp")
+        file = (
+            await Convert.to_sticker(
+                legendevent, remove_bg_image, file="rmbgsticker.webp", noedits=True
+            )
+        )[1]
         await event.client.send_file(
             event.chat_id,
             file,
@@ -119,4 +116,5 @@ async def remove_background(event):
             force_document=True,
             reply_to=message_id,
         )
-    await legendevent.delete()
+    if os.path.exists(file):
+        os.remove(file)

@@ -1,3 +1,9 @@
+"""
+`Credits` @amnd33p
+from ..helpers.utils import _format
+Modified by @mrconfused
+"""
+
 import io
 import traceback
 from datetime import datetime
@@ -21,7 +27,7 @@ menu_category = "utils"
     info={
         "header": "To Take a screenshot of a website.",
         "usage": "{tr}ss <link>",
-        "examples": "{tr}ss https://github.com/ITS-LEGENDBOT/LEGENDUSERBOT",
+        "examples": "{tr}ss https://github.com/LEGEND-AI/LEGENDUSERBOT",
     },
 )
 async def _(event):
@@ -47,7 +53,7 @@ async def _(event):
         if cmd == "ss":
             legendurl = url(inputstr)
             if not legendurl:
-                inputstr = "http://" + input_str
+                inputstr = f"http://{input_str}"
                 legendurl = url(inputstr)
             if not legendurl:
                 return await legendevent.edit("`The given input is not supported url`")
@@ -74,7 +80,7 @@ async def _(event):
         hmm = f"**url : **{input_str} \n**Time :** `{ms} seconds`"
         await legendevent.delete()
         with io.BytesIO(im_png) as out_file:
-            out_file.name = input_str + ".PNG"
+            out_file.name = f"{input_str}.PNG"
             await event.client.send_file(
                 event.chat_id,
                 out_file,
@@ -95,7 +101,7 @@ async def _(event):
         "header": "To Take a screenshot of a website.",
         "description": "For functioning of this command you need to set SCREEN_SHOT_LAYER_ACCESS_KEY var",
         "usage": "{tr}scapture <link>",
-        "examples": "{tr}scapture https://github.com/ITS-LEGENDBOT/LEGENDUSERBOT",
+        "examples": "{tr}scapture https://github.com/LEGEND-AI/LEGENDUSERBOT",
     },
 )
 async def _(event):

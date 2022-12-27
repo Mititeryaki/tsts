@@ -7,6 +7,7 @@ from Legendbot import legend
 from ..core.managers import eor
 from ..sql_helper import blacklist_sql as sql
 from ..utils import is_admin
+from . import BOTLOG_CHATID
 
 menu_category = "admin"
 
@@ -20,7 +21,7 @@ async def on_new_message(event):
         return
     for snip in snips:
         pattern = f"( |^|[^\\w]){re.escape(snip)}( |$|[^\\w])"
-        if re.search(pattern, name, types=re.IGNORECASE):
+        if re.search(pattern, name, flags=re.IGNORECASE):
             try:
                 await event.delete()
             except Exception:
@@ -35,7 +36,7 @@ async def on_new_message(event):
 
 
 @legend.legend_cmd(
-    pattern="addblacklist ((.|\n)*)",
+    pattern="addblacklist(?:\s|$)([\s\S]*)",
     command=("addblacklist", menu_category),
     info={
         "header": "To add blacklist words to database",
@@ -59,14 +60,12 @@ async def _(event):
         sql.add_to_blacklist(event.chat_id, trigger.lower())
     await eor(
         event,
-        "Added {} triggers to the blacklist in the current chat".format(
-            len(to_blacklist)
-        ),
+        f"Added {len(to_blacklist)} triggers to the blacklist in the current chat",
     )
 
 
 @legend.legend_cmd(
-    pattern="rmblacklist ((.|\n)*)",
+    pattern="rmblacklist(?:\s|$)([\s\S]*)",
     command=("rmblacklist", menu_category),
     info={
         "header": "To remove blacklist words from database",

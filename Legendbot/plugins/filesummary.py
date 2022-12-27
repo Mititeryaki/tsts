@@ -1,4 +1,4 @@
-# file summary plugin for LegendUserBot  by @LEGEND_K_BOY
+# file summary plugin for legenduserbot  by @mrconfused
 import time
 
 from prettytable import PrettyTable
@@ -6,9 +6,9 @@ from prettytable import PrettyTable
 from Legendbot import legend
 
 from ..core.managers import eod, eor
-from ..helpers.progress import humanbytes
 from ..helpers.tools import media_type
 from ..helpers.utils import _format
+from . import humanbytes
 
 menu_category = "utils"
 
@@ -21,7 +21,7 @@ TYPES = [
     "Sticker",
     "Gif",
     "Voice",
-    "Round Video",
+    "Round",
 ]
 
 
@@ -36,10 +36,10 @@ def weird_division(n, d):
         "header": "Shows you the complete media/file summary of the that group.",
         "description": "As of now limited to last 10000 in the group u used",
         "usage": "{tr}chatfs <Username/id>",
-        "examples": "{tr}chatfs @LegendBot_AI",
+        "examples": "{tr}chatfs @LegendBot_OP",
     },
 )
-async def _(event):  # sourcery no-metrics
+async def _(event):  # sourcery no-metrics  # sourcery skip: low-code-quality
     "Shows you the complete media/file summary of the that group"
     entity = event.chat_id
     if input_str := event.pattern_match.group(1):
@@ -81,7 +81,7 @@ async def _(event):  # sourcery no-metrics
     }
     async for message in event.client.iter_messages(entity=entity, limit=None):
         msg_count += 1
-        media = media_type(message)
+        media = await media_type(message)
         if media is not None:
             media_dict[media]["file_size"] += message.file.size
             media_dict[media]["count"] += 1
@@ -117,7 +117,7 @@ async def _(event):  # sourcery no-metrics
         str(round((weird_division((endtime - starttime), totalcount)) * 1000, 2))
         + " ms"
     )
-    totalstring = f"<code><b>Total files : </b>       | {totalcount}\\\x1f                  \nTotal file size :    | {humanbytes(totalsize)}\\\x1f                  \nAvg. file size :     | {avghubytes}\\\x1f                  \n</code>"
+    totalstring = f"<code><b>Total files : </b>       | {totalcount}\nTotal file size :    | {humanbytes(totalsize)}\nAvg. file size :     | {avghubytes}\n</code>"
 
     runtimestring = f"<code>Runtime :            | {runtime}\
                     \nRuntime per file :   | {avgruntime}\
@@ -142,7 +142,7 @@ async def _(event):  # sourcery no-metrics
         "examples": "{tr}userfs @MissRose_bot",
     },
 )
-async def _(event):  # sourcery no-metrics
+async def _(event):  # sourcery no-metrics  # sourcery skip: low-code-quality
     "Shows you the complete media/file summary of the that user in that group."
     reply = await event.get_reply_message()
     input_str = event.pattern_match.group(1)
@@ -208,7 +208,7 @@ async def _(event):  # sourcery no-metrics
         entity=entity, limit=None, from_user=userentity
     ):
         msg_count += 1
-        media = media_type(message)
+        media = await media_type(message)
         if media is not None:
             media_dict[media]["file_size"] += message.file.size
             media_dict[media]["count"] += 1
@@ -244,7 +244,7 @@ async def _(event):  # sourcery no-metrics
         str(round((weird_division((endtime - starttime), totalcount)) * 1000, 2))
         + " ms"
     )
-    totalstring = f"<code><b>Total files : </b>       | {totalcount}\\\x1f                  \nTotal file size :    | {humanbytes(totalsize)}\\\x1f                  \nAvg. file size :     | {avghubytes}\\\x1f                  \n</code>"
+    totalstring = f"<code><b>Total files : </b>       | {totalcount}\nTotal file size :    | {humanbytes(totalsize)}\nAvg. file size :     | {avghubytes}\n</code>"
 
     runtimestring = f"<code>Runtime :            | {runtime}\
                     \nRuntime per file :   | {avgruntime}\

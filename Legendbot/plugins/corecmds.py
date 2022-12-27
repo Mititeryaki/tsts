@@ -1,21 +1,11 @@
+import contextlib
 import os
-from datetime import datetime
 from pathlib import Path
 
 from ..Config import Config
+from ..core import CMD_INFO, PLG_INFO
 from ..utils import load_module, remove_plugin
-from . import (
-    CMD_HELP,
-    CMD_LIST,
-    SUDO_LIST,
-    chnl_link,
-    eod,
-    eor,
-    hmention,
-    legend,
-    mention,
-    reply_id,
-)
+from . import CMD_HELP, CMD_LIST, SUDO_LIST, eod, eor, legend, reply_id
 
 menu_category = "tools"
 
@@ -27,8 +17,6 @@ def plug_checker(plugin):
     plug_path = f"./Legendbot/plugins/{plugin}.py"
     if not os.path.exists(plug_path):
         plug_path = f"./xtraplugins/{plugin}.py"
-    if not os.path.exists(plug_path):
-        plug_path = f"./Legendbot/assistant/{plugin}.py"
     return plug_path
 
 
@@ -37,77 +25,35 @@ def plug_checker(plugin):
     command=("install", menu_category),
     info={
         "header": "To install an external plugin.",
-        "description": "Reply to any external plugin(supported by LegendBot) to install it in your bot.",
+        "description": "Reply to any external plugin(supported by lol) to install it in your bot.",
         "usage": "{tr}install",
     },
 )
 async def install(event):
     "To install an external plugin."
-    b = 1
-    owo = event.text[9:]
-    legend = await eor(event, "__Installing.__")
     if event.reply_to_msg_id:
         try:
-            downloaded_file_name = (
-                await event.client.download_media(  # pylint:disable=E0602
-                    await event.get_reply_message(),
-                    "./Legendbot/plugins/",  # pylint:disable=E0602
-                )
+            downloaded_file_name = await event.client.download_media(
+                await event.get_reply_message(),
+                "Legendbot/plugins/",
             )
-            op = open(downloaded_file_name, "r")
-            rd = op.read()
-            op.close()
-            try:
-                if "session" in rd:
-                    os.remove(downloaded_file_name)
-                    await legend.edit(
-                        f"**⚠️ WARNING !!** \n\n__Replied plugin file contains some harmful codes__."
-                    )
-                    return
-                elif "os.environ" in rd:
-                    os.remove(downloaded_file_name)
-                    await legend.edit(
-                        f"**⚠️ WARNING !!** \n\n__Replied plugin file contains some harmful codes__."
-                    )
-                    return
-                elif "(" not in downloaded_file_name:
-                    path1 = Path(downloaded_file_name)
-                    shortname = path1.stem
-                    load_module(shortname.replace(".py", ""))
-                    if shortname in CMD_LIST:
-                        string = "**Commands found in** `{}`\n".format(
-                            (os.path.basename(downloaded_file_name))
-                        )
-                        for i in CMD_LIST[shortname]:
-                            string += "  •  `" + i
-                            string += "`\n"
-                            if b == 1:
-                                a = "__Installing..__"
-                                b = 2
-                            else:
-                                a = "__Installing...__"
-                                b = 1
-                            await legend.edit(a)
-                        return await legend.edit(
-                            f"✅ **Installed module** :- `{shortname}` \n✨ BY :- {mention}\n\n{string}\n\n        ⚡ **[Lêɠêɳ̃dẞø†]({chnl_link})** ⚡",
-                            link_preview=False,
-                        )
-
-                    return await legend.edit(
-                        f"Installed module `{os.path.basename(downloaded_file_name)}`"
-                    )
-                else:
-                    os.remove(downloaded_file_name)
-                    return await eod(
-                        legend,
-                        f"**Failed to Install** \n`Error`, Module already installed",
-                    )
-            except Exception as e:
-                await eod(legend, f"{e}")
-                return os.remove(downloaded_file_name)
+            if "(" not in downloaded_file_name:
+                path1 = Path(downloaded_file_name)
+                shortname = path1.stem
+                load_module(shortname.replace(".py", ""))
+                await eod(
+                    event,
+                    f"Installed Plugin `{os.path.basename(downloaded_file_name)}`",
+                    10,
+                )
+            else:
+                os.remove(downloaded_file_name)
+                await eod(
+                    event, "Errors! This plugin is already installed/pre-installed.", 10
+                )
         except Exception as e:
-            await eod(legend, f"**Failed to Install** \n`Error`\n{str(e)}")
-            return os.remove(downloaded_file_name)
+            await eod(event, f"**Error:**\n`{e}`", 10)
+            os.remove(downloaded_file_name)
 
 
 @legend.legend_cmd(
@@ -124,16 +70,13 @@ async def load(event):
     "To load a plugin again. if you have unloaded it"
     shortname = event.pattern_match.group(1)
     try:
-        try:
+        with contextlib.suppress(BaseException):
             remove_plugin(shortname)
-        except BaseException:
-            pass
         load_module(shortname)
         await eod(event, f"`Successfully loaded {shortname}`", 10)
     except Exception as e:
         await eor(
-            event,
-            f"Could not load {shortname} because of the following error.\n{e}",
+            event, f"Could not load {shortname} because of the following error.\n{e}"
         )
 
 
@@ -153,7 +96,6 @@ async def send(event):
     input_str = event.pattern_match.group(1)
     the_plugin_file = plug_checker(input_str)
     if os.path.exists(the_plugin_file):
-        start = datetime.now()
         caat = await event.client.send_file(
             event.chat_id,
             the_plugin_file,
@@ -161,21 +103,16 @@ async def send(event):
             allow_cache=False,
             reply_to=reply_to_id,
             thumb=thumb,
+            caption=f"**➥ Plugin Name:-** `{input_str}`",
         )
-        end = datetime.now()
-        ms = (end - start).seconds
         await event.delete()
-        await caat.edit(
-            f"<b><i>➥⍟ Plugin Name :- {input_str} .</i></b>\n<b><i>➥⍟ Uploaded in {ms} seconds.</i></b>\n<b><i>➥⍟ Uploaded by :- {hmention}</i></b>",
-            parse_mode="html",
-        )
     else:
-        await eor(event, f"__There Is no any file with name {input_str}__")
+        await eor(event, "404: File Not Found")
 
 
 @legend.legend_cmd(
-    pattern="upload ([\s\S]*)",
-    command=("upload", menu_category),
+    pattern="unload ([\s\S]*)",
+    command=("unload", menu_category),
     info={
         "header": "To unload a plugin temporarily.",
         "description": "You can load this unloaded plugin by restarting or using {tr}load cmd. Useful for cases like seting notes in rose bot({tr}unload markdown).",

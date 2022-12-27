@@ -1,5 +1,6 @@
 import string
 
+from telethon.errors.rpcerrorlist import ForbiddenError
 from telethon.tl.types import Channel, MessageMediaWebPage
 
 from Legendbot import legend
@@ -22,9 +23,9 @@ class FPOST:
 FPOST_ = FPOST()
 
 
-async def all_groups_id(legend):
+async def all_groups_id(lol):
     legendgroups = []
-    async for dialog in legend.client.iter_dialogs():
+    async for dialog in lol.client.iter_dialogs():
         entity = dialog.entity
         if isinstance(entity, Channel) and entity.megagroup:
             legendgroups.append(entity.id)
@@ -79,7 +80,13 @@ async def _(event):
     if not m:
         return
     if m.media and not isinstance(m.media, MessageMediaWebPage):
-        return await event.client.send_file(event.chat_id, m.media, caption=m.text)
+        try:
+            return await event.client.send_file(event.chat_id, m.media, caption=m.text)
+        except ForbiddenError:
+            return await event.client.send_message(
+                event.chat_id,
+                "**Sad ::**  __You are too poor to use this, Get a Premium Account from Durov.__",
+            )
     await event.client.send_message(event.chat_id, m.text)
 
 
@@ -89,7 +96,7 @@ async def _(event):
     info={
         "header": "Split the word and forwards each letter from previous messages in that group",
         "usage": "{tr}fpost <text>",
-        "examples": "{tr}fpost LegendUserBot",
+        "examples": "{tr}fpost legenduserbot",
     },
 )
 async def _(event):
@@ -111,6 +118,6 @@ async def _(event):
             for i in FPOST_.GROUPSID:
                 async for msg in event.client.iter_messages(event.chat_id, search=c):
                     if msg.raw_text.lower() == c and msg.media is None:
-                        MSG_CACHE[c] = msg
+                        FPOST_.MSG_CACHE[c] = msg
                         break
         await event.client.forward_messages(destination, FPOST_.MSG_CACHE[c])

@@ -60,11 +60,11 @@ async def _(event):  # sourcery no-metrics
         await eod(legendevent, "`The user doesn't have any record`")
     names, usernames = await sanga_seperator(responses)
     cmd = event.pattern_match.group(1)
-    LEGEND = None
+    krishna = None
     check = usernames if cmd == "u" else names
     for i in check:
-        if LEGEND:
+        if krishna:
             await event.reply(i, parse_mode=_format.parse_pre)
         else:
-            LEGEND = True
+            krishna = True
             await legendevent.edit(i, parse_mode=_format.parse_pre)

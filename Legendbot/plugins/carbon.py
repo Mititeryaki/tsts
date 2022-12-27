@@ -7,8 +7,8 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
 from ..Config import Config
-from ..helpers.functions.utils import deEmojify
-from . import eod, eor, legend
+from ..core.managers import eod, eor
+from . import deEmojify, legend
 
 menu_category = "utils"
 
@@ -43,7 +43,7 @@ async def carbon_api(event):
         )
     pcode = deEmojify(pcode)
     code = quote_plus(pcode)
-    legend = await eor(event, "`Carbonizing...\n25%`")
+    lol = await eor(event, "`Carbonizing...\n25%`")
     url = CARBON.format(code=code, lang=CARBONLANG)
     chrome_options = Options()
     chrome_options.add_argument("--headless")
@@ -58,7 +58,7 @@ async def carbon_api(event):
         executable_path=Config.CHROME_DRIVER, options=chrome_options
     )
     driver.get(url)
-    await legend.edit("`Be Patient...\n50%`")
+    await eor(lol, "`Be Patient...\n50%`")
     download_path = "./"
     driver.command_executor._commands["send_command"] = (
         "POST",
@@ -69,14 +69,14 @@ async def carbon_api(event):
         "params": {"behavior": "allow", "downloadPath": download_path},
     }
     driver.execute("send_command", params)
-    driver.find_element_by_xpath("//button[contains(text(),'Export')]").click()
+    driver.find_element("xpath", "//button[contains(text(),'Export')]").click()
 
-    await legend.edit("`Processing..\n75%`")
+    await eor(lol, "`Processing..\n75%`")
 
     await asyncio.sleep(2)
-    await legend.edit("`Done Dana Done...\n100%`")
+    await eor(lol, "`Done Dana Done...\n100%`")
     file = "./carbon.png"
-    await legend.edit("`Uploading..`")
+    await eor(lol, "`Uploading..`")
     await event.client.send_file(
         event.chat_id,
         file,
@@ -87,92 +87,7 @@ async def carbon_api(event):
     os.remove("./carbon.png")
     driver.quit()
 
-    await legend.delete()
-
-
-@legend.legend_cmd(
-    pattern="krb(?:\s|$)([\s\S]*)",
-    command=("krb", menu_category),
-    info={
-        "header": "Carbon generators for given text. each time gives  random style. You can also use patcicular style by using semicolon after text and name",
-        "usage": [
-            "{tr}krb <text>",
-            "{tr}krb <reply to text>",
-            "{tr}krb <text> ; <style name>",
-        ],
-    },
-)
-async def carbon_api(event):
-    """A Wrapper for carbon.now.sh"""
-    LEGEND = await eor(event, "`Processing....`")
-    CARBON = "https://carbon.now.sh/?l={lang}&code={code}"
-    textx = await event.get_reply_message()
-    pcode = event.text
-    if pcode[5:]:
-        pcodee = str(pcode[5:])
-        if "|" in pcodee:
-            pcode, skeme = pcodee.split("|")
-        else:
-            pcode = pcodee
-            skeme = None
-    elif textx:
-        pcode = str(textx.message)
-        skeme = None
-    else:
-        return await eod(
-            event,
-            "`No text is given. Either pass text along with cmd or reply to text`",
-        )
-    pcode = pcode.strip()
-    if skeme:
-        skeme = skeme.strip()
-    pcode = deEmojify(pcode)
-    code = quote_plus(pcode)  # Converting to urlencoded
-    await LEGEND.edit("`Meking Carbon...`\n`25%`")
-    url = CARBON.format(code=code, lang=CARBONLANG)
-    chrome_options = Options()
-    chrome_options.add_argument("--headless")
-    chrome_options.binary_location = Config.CHROME_BIN
-    chrome_options.add_argument("--window-size=1920x1080")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-gpu")
-    prefs = {"download.default_directory": "./"}
-    chrome_options.add_experimental_option("prefs", prefs)
-    driver = webdriver.Chrome(
-        executable_path=Config.CHROME_DRIVER, options=chrome_options
-    )
-    driver.get(url)
-    await LEGEND.edit("`Be Patient...\n50%`")
-    download_path = "./"
-    driver.command_executor._commands["send_command"] = (
-        "POST",
-        "/session/$sessionId/chromium/send_command",
-    )
-    params = {
-        "cmd": "Page.setDownloadBehavior",
-        "params": {"behavior": "allow", "downloadPath": download_path},
-    }
-    driver.execute("send_command", params)
-    driver.find_element_by_xpath("//button[contains(text(),'Export')]").click()
-
-    await LEGEND.edit("`Processing..\n75%`")
-
-    await asyncio.sleep(2)
-    await LEGEND.edit("`Done Dana Done...\n100%`")
-    file = "./carbon.png"
-    await LEGEND.edit("`Uploading..`")
-    await event.client.send_file(
-        event.chat_id,
-        file,
-        caption="Here's your carbon",
-        force_document=True,
-        reply_to=event.message.reply_to_msg_id,
-    )
-    os.remove("./carbon.png")
-    driver.quit()
-
-    await LEGEND.delete()
+    await lol.delete()
 
 
 @legend.legend_cmd(
@@ -186,9 +101,9 @@ async def carbon_api(event):
         ],
     },
 )
-async def carbon_api(event):
+async def kar1_api(event):
     """A Wrapper for carbon.now.sh"""
-    legend = await eor(event, "🔲🔲🔲🔲🔲")
+    lol = await eor(event, "🔲🔲🔲🔲🔲")
     CARBON = "https://carbon.now.sh/?bg=rgba(249%2C237%2C212%2C0)&t=synthwave-84&wt=none&l=application%2Fjson&ds=true&dsyoff=20px&dsblur=0px&wc=true&wa=true&pv=56px&ph=0px&ln=false&fl=1&fm=IBM%20Plex%20Mono&fs=14.5px&lh=153%25&si=false&es=4x&wm=false&code={code}"
     textx = await event.get_reply_message()
     pcode = event.text
@@ -198,8 +113,7 @@ async def carbon_api(event):
         pcode = str(textx.message)
     else:
         return await eod(
-            event,
-            "`No text is given. Either pass text along with cmd or reply to text`",
+            lol, "`No text is given. Either pass text along with cmd or reply to text`"
         )
     code = quote_plus(pcode)
     url = CARBON.format(code=code, lang=CARBONLANG)
@@ -212,7 +126,7 @@ async def carbon_api(event):
     chrome_options.add_argument("--disable-gpu")
     prefs = {"download.default_directory": "./"}
     chrome_options.add_experimental_option("prefs", prefs)
-    await legend.edit("🔳🔳🔲🔲🔲")
+    await eor(lol, "🔳🔳🔲🔲🔲")
 
     driver = webdriver.Chrome(
         executable_path=Config.CHROME_DRIVER, options=chrome_options
@@ -229,13 +143,13 @@ async def carbon_api(event):
     }
     driver.execute("send_command", params)
 
-    driver.find_element_by_xpath("//button[contains(text(),'Export')]").click()
+    driver.find_element("xpath", "//button[contains(text(),'Export')]").click()
     await asyncio.sleep(1)
-    await legend.edit("🔳🔳🔳🔲🔲")
+    await eor(lol, "🔳🔳🔳🔲🔲")
     await asyncio.sleep(1)
-    await legend.edit("🔳🔳🔳🔳🔳")
+    await eor(lol, "🔳🔳🔳🔳🔳")
     file = "./carbon.png"
-    await legend.edit("☣️Karbon1 Completed, Uploading Karbon☣️")
+    await eor(lol, "☣️Karbon1 Completed, Uploading Karbon☣️")
     await event.client.send_file(
         event.chat_id,
         file,
@@ -244,7 +158,7 @@ async def carbon_api(event):
     )
     os.remove("./carbon.png")
 
-    await legend.delete()
+    await lol.delete()
 
 
 @legend.legend_cmd(
@@ -258,9 +172,9 @@ async def carbon_api(event):
         ],
     },
 )
-async def carbon_api(event):
+async def kar2_api(event):
     """A Wrapper for carbon.now.sh"""
-    legend = await eor(event, "📛📛📛📛📛")
+    lol = await eor(event, "📛📛📛📛📛")
     CARBON = "https://carbon.now.sh/?bg=rgba(239%2C40%2C44%2C1)&t=one-light&wt=none&l=application%2Ftypescript&ds=true&dsyoff=20px&dsblur=68px&wc=true&wa=true&pv=56px&ph=56px&ln=false&fl=1&fm=Hack&fs=14px&lh=143%25&si=false&es=2x&wm=false&code={code}"
     textx = await event.get_reply_message()
     pcode = event.text
@@ -270,8 +184,7 @@ async def carbon_api(event):
         pcode = str(textx.message)
     else:
         return await eod(
-            event,
-            "`No text is given. Either pass text along with cmd or reply to text`",
+            lol, "`No text is given. Either pass text along with cmd or reply to text`"
         )
     code = quote_plus(pcode)
     url = CARBON.format(code=code, lang=CARBONLANG)
@@ -284,7 +197,7 @@ async def carbon_api(event):
     chrome_options.add_argument("--disable-gpu")
     prefs = {"download.default_directory": "./"}
     chrome_options.add_experimental_option("prefs", prefs)
-    await legend.edit("🔘🔘📛📛📛")
+    await eor(lol, "🔘🔘📛📛📛")
     driver = webdriver.Chrome(
         executable_path=Config.CHROME_DRIVER, options=chrome_options
     )
@@ -299,13 +212,13 @@ async def carbon_api(event):
         "params": {"behavior": "allow", "downloadPath": download_path},
     }
     driver.execute("send_command", params)
-    driver.find_element_by_xpath("//button[contains(text(),'Export')]").click()
+    driver.find_element("xpath", "//button[contains(text(),'Export')]").click()
     await asyncio.sleep(1)
-    await legend.edit("🔘🔘🔘📛📛")
+    await eor(lol, "🔘🔘🔘📛📛")
     await asyncio.sleep(1)
-    await legend.edit("🔘🔘🔘🔘🔘")
+    await eor(lol, "🔘🔘🔘🔘🔘")
     file = "./carbon.png"
-    await legend.edit("☣️Karbon2 Completed, Uploading Karbon☣️")
+    await eor(lol, "☣️Karbon2 Completed, Uploading Karbon☣️")
     await event.client.send_file(
         event.chat_id,
         file,
@@ -316,7 +229,7 @@ async def carbon_api(event):
 
     os.remove("./carbon.png")
 
-    await legend.delete()
+    await lol.delete()
 
 
 @legend.legend_cmd(
@@ -330,9 +243,9 @@ async def carbon_api(event):
         ],
     },
 )
-async def carbon_api(event):
+async def kar3_api(event):
     """A Wrapper for carbon.now.sh"""
-    legend = await eor(event, "🎛🎛🎛🎛🎛")
+    lol = await eor(event, "🎛🎛🎛🎛🎛")
     CARBON = "https://carbon.now.sh/?bg=rgba(74%2C144%2C226%2C1)&t=material&wt=none&l=auto&ds=false&dsyoff=20px&dsblur=68px&wc=true&wa=true&pv=56px&ph=56px&ln=false&fl=1&fm=Fira%20Code&fs=14px&lh=152%25&si=false&es=2x&wm=false&code={code}"
     textx = await event.get_reply_message()
     pcode = event.text
@@ -342,8 +255,7 @@ async def carbon_api(event):
         pcode = str(textx.message)
     else:
         return await eod(
-            event,
-            "`No text is given. Either pass text along with cmd or reply to text`",
+            lol, "`No text is given. Either pass text along with cmd or reply to text`"
         )
     code = quote_plus(pcode)
     url = CARBON.format(code=code, lang=CARBONLANG)
@@ -356,7 +268,7 @@ async def carbon_api(event):
     chrome_options.add_argument("--disable-gpu")
     prefs = {"download.default_directory": "./"}
     chrome_options.add_experimental_option("prefs", prefs)
-    await legend.edit("🔵🔵🎛🎛🎛")
+    await eor(lol, "🔵🔵🎛🎛🎛")
 
     driver = webdriver.Chrome(
         executable_path=Config.CHROME_DRIVER, options=chrome_options
@@ -373,13 +285,13 @@ async def carbon_api(event):
     }
     driver.execute("send_command", params)
 
-    driver.find_element_by_xpath("//button[contains(text(),'Export')]").click()
+    driver.find_element("xpath", "//button[contains(text(),'Export')]").click()
     await asyncio.sleep(1)
-    await legend.edit("🔵🔵🔵🎛🎛")
+    await eor(lol, "🔵🔵🔵🎛🎛")
     await asyncio.sleep(1)
-    await legend.edit("🔵🔵🔵🔵🔵")
+    await eor(lol, "🔵🔵🔵🔵🔵")
     file = "./carbon.png"
-    await legend.edit("☣️Karbon3 Completed, Uploading Karbon⬆️")
+    await eor(lol, "☣️Karbon3 Completed, Uploading Karbon⬆️")
     await event.client.send_file(
         event.chat_id,
         file,
@@ -389,7 +301,7 @@ async def carbon_api(event):
     )
 
     os.remove("./carbon.png")
-    await legend.delete()
+    await lol.delete()
 
 
 @legend.legend_cmd(
@@ -403,9 +315,9 @@ async def carbon_api(event):
         ],
     },
 )
-async def carbon_api(event):
+async def kar4_api(event):
     """A Wrapper for carbon.now.sh"""
-    legend = await eor(event, "🌚🌚🌚🌚🌚")
+    lol = await eor(event, "🌚🌚🌚🌚🌚")
     CARBON = "https://carbon.now.sh/?bg=rgba(29%2C40%2C104%2C1)&t=one-light&wt=none&l=application%2Ftypescript&ds=true&dsyoff=20px&dsblur=68px&wc=true&wa=true&pv=56px&ph=56px&ln=false&fl=1&fm=Hack&fs=14px&lh=143%25&si=false&es=2x&wm=false&code={code}"
     textx = await event.get_reply_message()
     pcode = event.text
@@ -415,8 +327,7 @@ async def carbon_api(event):
         pcode = str(textx.message)
     else:
         return await eod(
-            event,
-            "`No text is given. Either pass text along with cmd or reply to text`",
+            lol, "`No text is given. Either pass text along with cmd or reply to text`"
         )
     code = quote_plus(pcode)
     url = CARBON.format(code=code, lang=CARBONLANG)
@@ -429,7 +340,7 @@ async def carbon_api(event):
     chrome_options.add_argument("--disable-gpu")
     prefs = {"download.default_directory": "./"}
     chrome_options.add_experimental_option("prefs", prefs)
-    await legend.edit("🌝🌝🌚🌚🌚")
+    await eor(lol, "🌝🌝🌚🌚🌚")
     driver = webdriver.Chrome(
         executable_path=Config.CHROME_DRIVER, options=chrome_options
     )
@@ -444,13 +355,13 @@ async def carbon_api(event):
         "params": {"behavior": "allow", "downloadPath": download_path},
     }
     driver.execute("send_command", params)
-    driver.find_element_by_xpath("//button[contains(text(),'Export')]").click()
+    driver.find_element("xpath", "//button[contains(text(),'Export')]").click()
     await asyncio.sleep(1)
-    await legend.edit("🌝🌝🌝🌚🌚")
+    await eor(lol, "🌝🌝🌝🌚🌚")
     await asyncio.sleep(1)
-    await legend.edit("🌝🌝🌝🌝🌝")
+    await eor(lol, "🌝🌝🌝🌝🌝")
     file = "./carbon.png"
-    await legend.edit("✅Karbon4 Completed, Uploading Karbon✅")
+    await eor(lol, "✅Karbon4 Completed, Uploading Karbon✅")
     await event.client.send_file(
         event.chat_id,
         file,
@@ -460,7 +371,7 @@ async def carbon_api(event):
     )
 
     os.remove("./carbon.png")
-    await legend.delete()
+    await lol.delete()
 
 
 @legend.legend_cmd(
@@ -474,7 +385,7 @@ async def carbon_api(event):
         ],
     },
 )
-async def carbon_api(event):
+async def kargb_api(event):
     """A Wrapper for carbon.now.sh"""
     RED = random.randint(0, 256)
     GREEN = random.randint(0, 256)
@@ -512,7 +423,7 @@ async def carbon_api(event):
     ]
     CUNTHE = random.randint(0, len(THEME) - 1)
     The = THEME[CUNTHE]
-    legend = await eor(event, "⬜⬜⬜⬜⬜")
+    lol = await eor(event, "⬜⬜⬜⬜⬜")
     CARBON = "https://carbon.now.sh/?bg=rgba({R}%2C{G}%2C{B}%2C1)&t={T}&wt=none&l=auto&ds=false&dsyoff=20px&dsblur=68px&wc=true&wa=true&pv=56px&ph=56px&ln=false&fl=1&fm=Fira%20Code&fs=14px&lh=152%25&si=false&es=2x&wm=false&code={code}"
     textx = await event.get_reply_message()
     pcode = event.text
@@ -522,8 +433,7 @@ async def carbon_api(event):
         pcode = str(textx.message)
     else:
         return await eod(
-            event,
-            "`No text is given. Either pass text along with cmd or reply to text`",
+            lol, "`No text is given. Either pass text along with cmd or reply to text`"
         )
     code = quote_plus(pcode)
     url = CARBON.format(code=code, R=RED, G=GREEN, B=BLUE, T=The, lang=CARBONLANG)
@@ -536,7 +446,7 @@ async def carbon_api(event):
     chrome_options.add_argument("--disable-gpu")
     prefs = {"download.default_directory": "./"}
     chrome_options.add_experimental_option("prefs", prefs)
-    await legend.edit("⬛⬛⬜⬜⬜")
+    await eor(lol, "⬛⬛⬜⬜⬜")
     driver = webdriver.Chrome(
         executable_path=Config.CHROME_DRIVER, options=chrome_options
     )
@@ -551,13 +461,13 @@ async def carbon_api(event):
         "params": {"behavior": "allow", "downloadPath": download_path},
     }
     driver.execute("send_command", params)
-    driver.find_element_by_xpath("//button[contains(text(),'Export')]").click()
+    driver.find_element("xpath", "//button[contains(text(),'Export')]").click()
     await asyncio.sleep(1)
-    await legend.edit("⬛⬛⬛⬜⬜")
+    await eor(lol, "⬛⬛⬛⬜⬜")
     await asyncio.sleep(1)
-    await legend.edit("⬛⬛⬛⬛⬛")
+    await eor(lol, "⬛⬛⬛⬛⬛")
     file = "./carbon.png"
-    await legend.edit("✅RGB Karbon Completed, Uploading Karbon✅")
+    await eor(lol, "✅RGB Karbon Completed, Uploading Karbon✅")
     await event.client.send_file(
         event.chat_id,
         file,
@@ -567,4 +477,4 @@ async def carbon_api(event):
     )
 
     os.remove("./carbon.png")
-    await legend.delete()
+    await lol.delete()
