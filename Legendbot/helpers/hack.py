@@ -29,8 +29,6 @@ import urllib3
 from ..Config import Config
 
 menu_category = "tools"
-
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 # =================
 
 Heroku = heroku3.from_key(Config.API_KEY)
