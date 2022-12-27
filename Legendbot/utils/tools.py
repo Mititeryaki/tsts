@@ -4,14 +4,14 @@ from telethon.tl import functions
 async def create_supergroup(group_name, client, botusername, descript):
     try:
         admin_rights = ChatAdminRights(
-        add_admins=True,
-        invite_users=True,
-        change_info=True,
-        ban_users=True,
-        delete_messages=True,
-        pin_messages=True,
-        manage_call=True,
-    )
+            add_admins=True,
+            invite_users=True,
+            change_info=True,
+            ban_users=True,
+            delete_messages=True,
+            pin_messages=True,
+            manage_call=True,
+        )
         result = await client(
             functions.channels.CreateChannelRequest(
                 title=group_name,
